@@ -26,9 +26,7 @@ button {
   cursor: pointer;
 }
 
-#app {
-  display: none;
-}
+#app { display: none; }
 
 table {
   width: 100%;
@@ -51,12 +49,11 @@ th, td {
 <body>
 
 <!-- LOGIN -->
-<div id="login">
-  <h2>🔐 Iniciar sesión</h2>
+<div id="loginDiv">
+  <h2>🔐 Acceso</h2>
   <input id="email" placeholder="Correo">
   <input id="password" type="password" placeholder="Contraseña">
   <br>
-  <button onclick="registrar()">Registrarse</button>
   <button onclick="login()">Entrar</button>
 </div>
 
@@ -75,8 +72,6 @@ th, td {
   <input id="venta" type="number" placeholder="Precio venta">
   <button onclick="agregar()">Agregar</button>
 
-  <br><br>
-
   <table>
     <thead>
       <tr>
@@ -87,6 +82,7 @@ th, td {
         <th>Compra</th>
         <th>Venta</th>
         <th>Ganancia</th>
+        <th>Acción</th>
       </tr>
     </thead>
     <tbody id="tabla"></tbody>
@@ -99,6 +95,8 @@ th, td {
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
+const ADMIN_EMAIL = "tucorreo@gmail.com";
+
 const firebaseConfig = {
   apiKey: "AIzaSyDYSgns53l27_8yrSFmsFXjvXN77m_XExk",
   authDomain: "inventario-app-134fa.firebaseapp.com",
@@ -112,16 +110,14 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// 🔐 AUTH
-function registrar() {
-  auth.createUserWithEmailAndPassword(email.value, password.value)
-    .then(() => alert("Usuario creado"))
-    .catch(e => alert(e.message));
-}
-
+// 🔐 LOGIN SOLO ADMIN
 function login() {
+  if (email.value !== ADMIN_EMAIL) {
+    alert("No tienes acceso");
+    return;
+  }
+
   auth.signInWithEmailAndPassword(email.value, password.value)
-    .then(() => alert("Bienvenido"))
     .catch(e => alert(e.message));
 }
 
@@ -129,9 +125,9 @@ function logout() {
   auth.signOut();
 }
 
-// 🔄 CONTROL DE SESIÓN
+// 🔄 CONTROL SESIÓN
 auth.onAuthStateChanged(user => {
-  if (user) {
+  if (user && user.email === ADMIN_EMAIL) {
     loginDiv.style.display = "none";
     app.style.display = "block";
     cargarDatos();
@@ -141,7 +137,7 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-// 📦 GUARDAR
+// ➕ AGREGAR
 function agregar() {
   let user = auth.currentUser;
   if (!user) return;
@@ -154,28 +150,25 @@ function agregar() {
     compra: Number(compra.value),
     venta: Number(venta.value),
     uid: user.uid
-  }).then(() => {
-    limpiar();
-    cargarDatos();
   });
+  limpiar();
 }
 
-// 📥 CARGAR
+// 📡 TIEMPO REAL
 function cargarDatos() {
   let user = auth.currentUser;
   if (!user) return;
 
-  tabla.innerHTML = "";
-
   db.collection("inventario")
     .where("uid", "==", user.uid)
-    .get()
-    .then(snapshot => {
+    .onSnapshot(snapshot => {
+      tabla.innerHTML = "";
+
       snapshot.forEach(doc => {
         let item = doc.data();
 
         tabla.innerHTML += `
-          <tr>
+          <tr class="${item.cantidad < 5 ? 'bajo' : ''}">
             <td>${item.serie}</td>
             <td>${item.pieza}</td>
             <td>${item.marca}</td>
@@ -183,10 +176,18 @@ function cargarDatos() {
             <td>$${item.compra}</td>
             <td>$${item.venta}</td>
             <td>$${item.venta - item.compra}</td>
+            <td>
+              <button onclick="eliminar('${doc.id}')">❌</button>
+            </td>
           </tr>
         `;
       });
     });
+}
+
+// ❌ ELIMINAR
+function eliminar(id) {
+  db.collection("inventario").doc(id).delete();
 }
 
 // 🧹 LIMPIAR
