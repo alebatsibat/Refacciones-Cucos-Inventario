@@ -1,10 +1,7 @@
-<!DOCTYPE html>
-<html lang="es">
+<!DOCTYPE html><html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Inventario Pro</title>
-
-<style>
+<title>Inventario Pro (Mejorado)</title><style>
 body {
   font-family: Arial;
   background: #111;
@@ -12,27 +9,32 @@ body {
   padding: 20px;
 }
 
-/* TÍTULOS */
-h1, h2 {
-  text-align: center;
-}
+h1, h2, h3 { text-align: center; }
 
-/* INPUTS */
-input {
-  margin: 5px;
+input, button {
   padding: 8px;
+  margin: 5px;
 }
 
-/* BOTONES */
-button {
-  padding: 6px;
-  cursor: pointer;
-}
+button { cursor: pointer; }
 
-/* APP OCULTA */
 #app { display: none; }
 
-/* TABLA */
+.panel {
+  background: #1b1b1b;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 10px;
+  border: 1px solid #333;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
 table {
   width: 100%;
   margin-top: 20px;
@@ -45,84 +47,39 @@ th, td {
   text-align: center;
 }
 
-/* STOCK BAJO */
-.bajo {
-  background: #5a0000;
-}
+.bajo { background: #5a0000; }
 
-/* 🧩 PANELES */
-.panel {
-  background: #1b1b1b;
-  padding: 15px;
-  margin-bottom: 15px;
-  border-radius: 10px;
-  border: 1px solid #333;
-}
-
-.panel h3 {
-  margin-top: 0;
-  text-align: center;
-}
-
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-}
-</style>
-</head>
-
-<body>
-
-<!-- LOGIN -->
-<div id="loginDiv">
+small { color: #aaa; }
+</style></head><body><div id="loginDiv">
   <h2>🔐 Acceso</h2>
   <input id="email" placeholder="Correo">
   <input id="password" type="password" placeholder="Contraseña">
   <br>
   <button onclick="login()">Entrar</button>
-</div>
-
-<!-- APP -->
-<div id="app">
-  <h1>🚗 Inventario</h1>
-  <button onclick="logout()">Cerrar sesión</button>
-
-  <br><br>
-
-  <!-- 🔎 PANEL FILTROS -->
-  <div class="panel">
+</div><div id="app">
+  <h1>🚗 Inventario Pro</h1>
+  <button onclick="logout()">Cerrar sesión</button>  <div class="panel">
     <h3>🔎 Filtros</h3>
-
     <div class="row">
       <input id="buscarSerie" placeholder="Serie">
       <input id="filtroMarca" placeholder="Marca">
       <input id="minStock" type="number" placeholder="Stock mínimo">
       <input id="maxStock" type="number" placeholder="Stock máximo">
     </div>
-  </div>
-
-  <!-- ➕ PANEL NUEVO PRODUCTO -->
-  <div class="panel">
+  </div>  <div class="panel">
     <h3>➕ Nuevo producto</h3>
-
     <div class="row">
-      <input id="serie" placeholder="Número de serie">
+      <input id="serie" placeholder="Serie">
       <input id="pieza" placeholder="Pieza">
       <input id="marca" placeholder="Marca">
       <input id="cantidad" type="number" placeholder="Cantidad">
       <input id="compra" type="number" placeholder="Compra">
       <input id="venta" type="number" placeholder="Venta">
     </div>
-
-    <div style="text-align:center; margin-top:10px;">
+    <div style="text-align:center">
       <button onclick="agregar()">Agregar</button>
     </div>
-  </div>
-
-  <!-- 📦 TABLA -->
-  <table>
+  </div>  <table>
     <thead>
       <tr>
         <th>Serie</th>
@@ -138,212 +95,131 @@ th, td {
     </thead>
     <tbody id="tabla"></tbody>
   </table>
-</div>
-
-<!-- FIREBASE -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
-<script>
+</div><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><script>
 const ADMIN_EMAIL = "alebatsibat@gmail.com";
 const STOCK_MINIMO = 5;
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDYSgns53l27_8yrSFmsFXjvXN77m_XExk",
-  authDomain: "inventario-app-134fa.firebaseapp.com",
-  projectId: "inventario-app-134fa",
-  storageBucket: "inventario-app-134fa.firebasestorage.app",
-  messagingSenderId: "414583075085",
-  appId: "1:414583075085:web:c4a1d0efe61c9f8ce28044"
+  apiKey: "AIza...",
+  authDomain: "inventario-app.firebaseapp.com",
+  projectId: "inventario-app",
 };
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-/* ELEMENTOS */
-const email = document.getElementById("email");
-const password = document.getElementById("password");
+let unsubscribe = null;
 
-const serie = document.getElementById("serie");
-const pieza = document.getElementById("pieza");
-const marca = document.getElementById("marca");
-const cantidad = document.getElementById("cantidad");
-const compra = document.getElementById("compra");
-const venta = document.getElementById("venta");
+const $ = id => document.getElementById(id);
 
-const tabla = document.getElementById("tabla");
-
-const buscarSerie = document.getElementById("buscarSerie");
-const filtroMarca = document.getElementById("filtroMarca");
-const minStock = document.getElementById("minStock");
-const maxStock = document.getElementById("maxStock");
-
-const loginDiv = document.getElementById("loginDiv");
-const app = document.getElementById("app");
-
-/* LOGIN */
 function login() {
-  auth.signInWithEmailAndPassword(email.value, password.value)
+  auth.signInWithEmailAndPassword($('email').value, $('password').value)
     .catch(e => alert(e.message));
 }
 
-function logout() {
-  auth.signOut();
-}
+function logout() { auth.signOut(); }
 
-/* SESIÓN */
 auth.onAuthStateChanged(user => {
   if (user && user.email === ADMIN_EMAIL) {
-    loginDiv.style.display = "none";
-    app.style.display = "block";
+    $('loginDiv').style.display = 'none';
+    $('app').style.display = 'block';
     cargarDatos();
   } else {
-    loginDiv.style.display = "block";
-    app.style.display = "none";
+    $('loginDiv').style.display = 'block';
+    $('app').style.display = 'none';
   }
 });
 
-/* AGREGAR */
-function agregar() {
-  let user = auth.currentUser;
-  if (!user) return;
-
-  db.collection("inventario").add({
-    serie: serie.value,
-    pieza: pieza.value,
-    marca: marca.value,
-    cantidad: Number(cantidad.value),
-    compra: Number(compra.value),
-    venta: Number(venta.value),
-    uid: user.uid
-  });
-
-  limpiar();
-}
-
-/* CARGAR DATOS */
 function cargarDatos() {
-  let user = auth.currentUser;
+  const user = auth.currentUser;
   if (!user) return;
 
-  let alertas = new Set();
+  if (unsubscribe) unsubscribe();
 
-  db.collection("inventario")
-    .where("uid", "==", user.uid)
+  unsubscribe = db.collection('inventario')
+    .where('uid', '==', user.uid)
     .onSnapshot(snapshot => {
 
-      tabla.innerHTML = "";
+      const serieF = $('buscarSerie').value.toLowerCase();
+      const marcaF = $('filtroMarca').value.toLowerCase();
+      const min = Number($('minStock').value);
+      const max = Number($('maxStock').value);
 
-      let serieF = buscarSerie.value.toLowerCase();
-      let marcaF = filtroMarca.value.toLowerCase();
-      let min = Number(minStock.value);
-      let max = Number(maxStock.value);
-
-      alertas.clear();
+      $('tabla').innerHTML = '';
 
       snapshot.forEach(doc => {
-        let item = doc.data();
+        const i = doc.data();
 
         if (
-          (serieF && !item.serie.toLowerCase().includes(serieF)) ||
-          (marcaF && !item.marca.toLowerCase().includes(marcaF)) ||
-          (minStock.value && item.cantidad < min) ||
-          (maxStock.value && item.cantidad > max)
+          (serieF && !i.serie.toLowerCase().includes(serieF)) ||
+          (marcaF && !i.marca.toLowerCase().includes(marcaF)) ||
+          ($('minStock').value && i.cantidad < min) ||
+          ($('maxStock').value && i.cantidad > max)
         ) return;
 
-        if (item.cantidad <= STOCK_MINIMO && !alertas.has(item.serie)) {
-          alert(`⚠️ Stock bajo: ${item.serie} (${item.cantidad})`);
-          alertas.add(item.serie);
-        }
-
-        tabla.innerHTML += `
-          <tr class="${item.cantidad < STOCK_MINIMO ? 'bajo' : ''}">
-            <td>${item.serie}</td>
-            <td>${item.pieza}</td>
-            <td>${item.marca}</td>
-            <td>${item.cantidad}</td>
-            <td>$${item.compra}</td>
-            <td>$${item.venta}</td>
-            <td>$${Number(item.venta - item.compra)}</td>
-
+        $('tabla').innerHTML += `
+          <tr class="${i.cantidad <= STOCK_MINIMO ? 'bajo' : ''}">
+            <td>${i.serie}</td>
+            <td>${i.pieza}</td>
+            <td>${i.marca}</td>
+            <td>${i.cantidad}</td>
+            <td>$${i.compra}</td>
+            <td>$${i.venta}</td>
+            <td>$${i.venta - i.compra}</td>
             <td>
-              <input id="mov_${doc.id}" type="number" placeholder="Cantidad" style="width:80px">
+              <input id="m_${doc.id}" type="number" style="width:70px">
               <br>
-              <button onclick="comprar('${doc.id}')">➕</button>
-              <button onclick="vender('${doc.id}')">➖</button>
+              <button onclick="mov('${doc.id}', 1)">➕</button>
+              <button onclick="mov('${doc.id}', -1)">➖</button>
             </td>
-
-            <td>
-              <button onclick="eliminar('${doc.id}')">❌</button>
-            </td>
+            <td><button onclick="del('${doc.id}')">❌</button></td>
           </tr>
         `;
       });
     });
 }
 
-/* ➕ COMPRAR */
-function comprar(id) {
-  let input = document.getElementById("mov_" + id);
-  let cant = Number(input.value);
+function agregar() {
+  const user = auth.currentUser;
+  if (!user) return;
 
-  if (!cant || cant <= 0) return alert("Cantidad inválida");
+  db.collection('inventario').add({
+    serie: $('serie').value,
+    pieza: $('pieza').value,
+    marca: $('marca').value,
+    cantidad: Number($('cantidad').value),
+    compra: Number($('compra').value),
+    venta: Number($('venta').value),
+    uid: user.uid
+  });
 
-  let ref = db.collection("inventario").doc(id);
+  ['serie','pieza','marca','cantidad','compra','venta'].forEach(x => $(x).value='');
+}
 
-  ref.get().then(doc => {
-    ref.update({
-      cantidad: doc.data().cantidad + cant
-    });
-    input.value = "";
+function mov(id, type) {
+  const input = $('m_' + id);
+  const val = Number(input.value);
+  if (!val) return alert('Cantidad inválida');
+
+  const ref = db.collection('inventario').doc(id);
+
+  ref.get().then(d => {
+    let c = d.data().cantidad;
+    if (type === -1 && c < val) return alert('No hay stock');
+    ref.update({ cantidad: c + (val * type) });
+    input.value = '';
   });
 }
 
-/* ➖ VENDER */
-function vender(id) {
-  let input = document.getElementById("mov_" + id);
-  let cant = Number(input.value);
-
-  if (!cant || cant <= 0) return alert("Cantidad inválida");
-
-  let ref = db.collection("inventario").doc(id);
-
-  ref.get().then(doc => {
-    let actual = doc.data().cantidad;
-
-    if (actual < cant) return alert("No hay suficiente stock");
-
-    ref.update({
-      cantidad: actual - cant
-    });
-
-    input.value = "";
-  });
+function del(id) {
+  db.collection('inventario').doc(id).delete();
 }
 
-/* ❌ ELIMINAR */
-function eliminar(id) {
-  db.collection("inventario").doc(id).delete();
-}
+$('buscarSerie').addEventListener('input', cargarDatos);
+$('filtroMarca').addEventListener('input', cargarDatos);
+$('minStock').addEventListener('input', cargarDatos);
+$('maxStock').addEventListener('input', cargarDatos);
 
-/* LIMPIAR */
-function limpiar() {
-  serie.value = "";
-  pieza.value = "";
-  marca.value = "";
-  cantidad.value = "";
-  compra.value = "";
-  venta.value = "";
-}
-
-/* FILTROS EN TIEMPO REAL */
-buscarSerie.addEventListener("input", cargarDatos);
-filtroMarca.addEventListener("input", cargarDatos);
-minStock.addEventListener("input", cargarDatos);
-maxStock.addEventListener("input", cargarDatos);
-</script>
-
-</body>
+</script></body>
 </html>
