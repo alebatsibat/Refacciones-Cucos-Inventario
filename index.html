@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Inventario de Piezas</title>
+<title>Inventario con Login</title>
 
 <style>
 body {
@@ -12,7 +12,9 @@ body {
   padding: 20px;
 }
 
-h1 { text-align: center; }
+h1, h2 {
+  text-align: center;
+}
 
 input {
   margin: 5px;
@@ -22,6 +24,10 @@ input {
 button {
   padding: 6px;
   cursor: pointer;
+}
+
+#app {
+  display: none;
 }
 
 table {
@@ -39,49 +45,113 @@ th, td {
 .bajo {
   background: #5a0000;
 }
-
-.acciones button {
-  margin: 2px;
-}
 </style>
 </head>
 
 <body>
 
-<h1>🚗 Inventario de Piezas</h1>
+<!-- LOGIN -->
+<div id="login">
+  <h2>🔐 Iniciar sesión</h2>
+  <input id="email" placeholder="Correo">
+  <input id="password" type="password" placeholder="Contraseña">
+  <br>
+  <button onclick="registrar()">Registrarse</button>
+  <button onclick="login()">Entrar</button>
+</div>
 
-<!-- FORM -->
-<input id="serie" placeholder="Número de serie">
-<input id="pieza" placeholder="Pieza">
-<input id="marca" placeholder="Marca">
-<input id="cantidad" type="number" placeholder="Cantidad">
-<input id="compra" type="number" placeholder="Precio compra">
-<input id="venta" type="number" placeholder="Precio venta">
-<button onclick="agregar()">Agregar</button>
+<!-- APP -->
+<div id="app">
+  <h1>🚗 Inventario</h1>
+  <button onclick="logout()">Cerrar sesión</button>
 
-<br><br>
+  <br><br>
 
-<input id="buscar" placeholder="Buscar..." onkeyup="mostrar()">
+  <input id="serie" placeholder="Número de serie">
+  <input id="pieza" placeholder="Pieza">
+  <input id="marca" placeholder="Marca">
+  <input id="cantidad" type="number" placeholder="Cantidad">
+  <input id="compra" type="number" placeholder="Precio compra">
+  <input id="venta" type="number" placeholder="Precio venta">
+  <button onclick="agregar()">Agregar</button>
 
-<!-- TABLA -->
-<table>
-<thead>
-<tr>
-<th>Número de serie</th>
-<th>Pieza</th>
-<th>Marca</th>
-<th>Cantidad</th>
-<th>Compra</th>
-<th>Venta</th>
-<th>Ganancia</th>
-<th>Movimientos</th>
-<th>Acción</th>
-</tr>
-</thead>
-<tbody id="tabla"></tbody>
-</table>
+  <br><br>
+
+  <input id="buscar" placeholder="Buscar..." onkeyup="mostrar()">
+
+  <table>
+    <thead>
+      <tr>
+        <th>Número de serie</th>
+        <th>Pieza</th>
+        <th>Marca</th>
+        <th>Cantidad</th>
+        <th>Compra</th>
+        <th>Venta</th>
+        <th>Ganancia</th>
+        <th>Movimientos</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tabla"></tbody>
+  </table>
+</div>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
 <script>
+// 🔥 CONFIG DE FIREBASE (YA LISTA)
+const firebaseConfig = {
+  apiKey: "AIzaSyDYSgns53l27_8yrSFmsFXjvXN77m_XExk",
+  authDomain: "inventario-app-134fa.firebaseapp.com",
+  projectId: "inventario-app-134fa",
+  storageBucket: "inventario-app-134fa.firebasestorage.app",
+  messagingSenderId: "414583075085",
+  appId: "1:414583075085:web:c4a1d0efe61c9f8ce28044"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+// 🔐 REGISTRO
+function registrar() {
+  let email = document.getElementById("email").value;
+  let password = document.getElementById("password").value;
+
+  auth.createUserWithEmailAndPassword(email, password)
+    .then(() => alert("Usuario creado"))
+    .catch(e => alert(e.message));
+}
+
+// 🔑 LOGIN
+function login() {
+  let email = document.getElementById("email").value;
+  let password = document.getElementById("password").value;
+
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => alert("Bienvenido"))
+    .catch(e => alert(e.message));
+}
+
+// 🚪 LOGOUT
+function logout() {
+  auth.signOut();
+}
+
+// 🔐 CONTROL DE SESIÓN
+auth.onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
+  } else {
+    document.getElementById("login").style.display = "block";
+    document.getElementById("app").style.display = "none";
+  }
+});
+
+// 📦 INVENTARIO
 let inventario = JSON.parse(localStorage.getItem("inv")) || [];
 
 function guardar() {
@@ -89,74 +159,47 @@ function guardar() {
 }
 
 function agregar() {
-  let serieVal = document.getElementById("serie").value.trim();
-  let piezaVal = document.getElementById("pieza").value.trim();
-  let marcaVal = document.getElementById("marca").value.trim();
-  let cantidadVal = Number(document.getElementById("cantidad").value);
-  let compraVal = Number(document.getElementById("compra").value);
-  let ventaVal = Number(document.getElementById("venta").value);
+  let serie = document.getElementById("serie").value;
+  let pieza = document.getElementById("pieza").value;
+  let marca = document.getElementById("marca").value;
+  let cantidad = Number(document.getElementById("cantidad").value);
+  let compra = Number(document.getElementById("compra").value);
+  let venta = Number(document.getElementById("venta").value);
 
-  if (!serieVal || !piezaVal || cantidadVal <= 0) {
-    alert("Llena correctamente los datos");
+  if (!serie || !pieza || cantidad <= 0) {
+    alert("Llena bien los datos");
     return;
   }
 
-  let item = {
-    serie: serieVal,
-    pieza: piezaVal,
-    marca: marcaVal,
-    cantidad: cantidadVal,
-    compra: compraVal,
-    venta: ventaVal
-  };
-
-  inventario.push(item);
+  inventario.push({ serie, pieza, marca, cantidad, compra, venta });
   guardar();
-  limpiar();
   mostrar();
 }
 
-function limpiar() {
-  document.getElementById("serie").value = "";
-  document.getElementById("pieza").value = "";
-  document.getElementById("marca").value = "";
-  document.getElementById("cantidad").value = "";
-  document.getElementById("compra").value = "";
-  document.getElementById("venta").value = "";
+function comprar(i) {
+  let c = Number(prompt("¿Cuántas piezas compraste?"));
+  if (c > 0) {
+    inventario[i].cantidad += c;
+    guardar();
+    mostrar();
+  }
+}
+
+function vender(i) {
+  let c = Number(prompt("¿Cuántas piezas vendiste?"));
+  if (c > 0 && inventario[i].cantidad >= c) {
+    inventario[i].cantidad -= c;
+    guardar();
+    mostrar();
+  } else {
+    alert("Stock insuficiente");
+  }
 }
 
 function eliminar(i) {
-  if (confirm("¿Eliminar este producto?")) {
-    inventario.splice(i, 1);
-    guardar();
-    mostrar();
-  }
-}
-
-// ➕ SUMAR STOCK
-function comprar(i) {
-  let cantidad = Number(prompt("¿Cuántas piezas compraste?"));
-
-  if (cantidad > 0) {
-    inventario[i].cantidad += cantidad;
-    guardar();
-    mostrar();
-  }
-}
-
-// ➖ RESTAR STOCK
-function vender(i) {
-  let cantidad = Number(prompt("¿Cuántas piezas vendiste?"));
-
-  if (cantidad > 0) {
-    if (inventario[i].cantidad >= cantidad) {
-      inventario[i].cantidad -= cantidad;
-      guardar();
-      mostrar();
-    } else {
-      alert("No tienes suficiente stock");
-    }
-  }
+  inventario.splice(i, 1);
+  guardar();
+  mostrar();
 }
 
 function mostrar() {
@@ -166,30 +209,26 @@ function mostrar() {
   tabla.innerHTML = "";
 
   inventario.forEach((item, i) => {
-
     if (
       item.pieza.toLowerCase().includes(filtro) ||
       item.serie.toLowerCase().includes(filtro)
     ) {
-
-      let ganancia = item.venta - item.compra;
       let clase = item.cantidad < 5 ? "bajo" : "";
-
       tabla.innerHTML += `
-      <tr class="${clase}">
-        <td>${item.serie}</td>
-        <td>${item.pieza}</td>
-        <td>${item.marca}</td>
-        <td>${item.cantidad}</td>
-        <td>$${item.compra}</td>
-        <td>$${item.venta}</td>
-        <td>$${ganancia}</td>
-        <td class="acciones">
-          <button onclick="comprar(${i})">➕</button>
-          <button onclick="vender(${i})">➖</button>
-        </td>
-        <td><button onclick="eliminar(${i})">❌</button></td>
-      </tr>
+        <tr class="${clase}">
+          <td>${item.serie}</td>
+          <td>${item.pieza}</td>
+          <td>${item.marca}</td>
+          <td>${item.cantidad}</td>
+          <td>$${item.compra}</td>
+          <td>$${item.venta}</td>
+          <td>$${item.venta - item.compra}</td>
+          <td>
+            <button onclick="comprar(${i})">➕</button>
+            <button onclick="vender(${i})">➖</button>
+          </td>
+          <td><button onclick="eliminar(${i})">❌</button></td>
+        </tr>
       `;
     }
   });
@@ -199,4 +238,4 @@ mostrar();
 </script>
 
 </body>
-  </html>
+</html>
