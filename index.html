@@ -134,9 +134,7 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-function cargarDatos() {
-  const user = auth.currentUser;
-  if (!user) return;
+function cargarDatos(user) {
 
   if (unsubscribe) unsubscribe();
 
