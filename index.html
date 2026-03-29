@@ -266,7 +266,6 @@ function mov(id,dir){
 }
 
 function del(id){
-  if(role !== 'admin') return;
   db.collection("inventario").doc(id).delete();
 }
 
