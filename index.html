@@ -52,6 +52,7 @@ th,td{
 .small{
   font-size:12px;
   opacity:0.9;
+  white-space:pre-wrap;
 }
 </style></head><body><!-- LOGIN --><div id="login" class="panel">
   <h2>🔐 Acceso</h2>
@@ -118,6 +119,7 @@ const db = firebase.firestore();
 let currentUser = null;
 let unsubscribe = null;
 let inventarioCache = [];
+let infoOpen = {};
 const STOCK_MINIMO = 5;
 
 const $ = id => document.getElementById(id);
@@ -161,6 +163,11 @@ function cargarDatos(){
     });
 }
 
+function toggleInfo(id){
+  infoOpen[id] = !infoOpen[id];
+  renderTabla();
+}
+
 function renderTabla(){
 
   const serieF = $("buscarSerie").value.toLowerCase();
@@ -179,6 +186,8 @@ function renderTabla(){
       ($("maxStock").value && i.cantidad > max)
     ) return;
 
+    const open = infoOpen[i.id];
+
     $("tabla").innerHTML += `
       <tr class="${i.cantidad <= STOCK_MINIMO ? 'bajo' : ''}">
         <td>${i.serie}</td>
@@ -188,9 +197,14 @@ function renderTabla(){
         <td>$${i.compra}</td>
         <td>$${i.venta}</td>
         <td>$${i.venta - i.compra}</td>
-        <td class="small">
-          <b>Utilidad:</b><br>${i.utilidad || ''}<br><br>
-          <b>Compatibilidad:</b><br>${i.compatibilidad || ''}
+        <td>
+          <button onclick="toggleInfo('${i.id}')">
+            ${open ? 'Ocultar info' : 'Ver info'}
+          </button>
+          <div class="small" style="display:${open ? 'block' : 'none'}; margin-top:5px;">
+            <b>Utilidad:</b><br>${i.utilidad || ''}<br><br>
+            <b>Compatibilidad:</b><br>${i.compatibilidad || ''}
+          </div>
         </td>
         <td>
           <input id="m_${i.id}" type="number" style="width:60px">
