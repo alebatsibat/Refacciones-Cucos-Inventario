@@ -10,34 +10,46 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
+  * { box-sizing: border-box; }
+
   body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: #111;
     margin: 0;
+    padding: 0;
     min-height: 100vh;
+    /* CENTRADO TOTAL DEL CONTENIDO */
     display: flex;
     flex-direction: column;
+    justify-content: center; 
     align-items: center;
 
     /* --- CONFIGURACIÓN DEL FONDO --- */
     background-color: #cfcfcf; 
-    /* Usamos tu link con un degradado encima para que el texto sea legible */
     background-image: linear-gradient(rgba(207, 207, 207, 0.75), rgba(207, 207, 207, 0.85)), 
-                      url('https://share.google/6K8SbCg36gWMnqiCJ'); 
+                      url('https://images.unsplash.com/photo-1486006396193-471fa7da91fe?q=80&w=1600'); 
     
-    background-size: cover;       /* La imagen cubre toda la pantalla */
-    background-position: center;  /* LA IMAGEN SE CENTRA EN MEDIO */
-    background-attachment: fixed; /* La imagen no se mueve al hacer scroll */
+    background-size: cover;       
+    background-position: center;  
+    background-attachment: fixed; 
     background-repeat: no-repeat;
   }
 
+  /* Contenedores principales */
   #login, #app {
     width: 95%;
     max-width: 1100px;
     margin: 20px auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centra los elementos internos */
   }
 
-  h1, h2, h3 { text-align: center; margin-top: 10px; text-shadow: 1px 1px 2px rgba(255,255,255,0.5); }
+  h1, h2, h3 { 
+    text-align: center; 
+    margin-top: 10px; 
+    width: 100%;
+  }
 
   input, textarea {
     font-family: inherit;
@@ -46,7 +58,6 @@
     height: 36px;
     margin: 5px;
     padding: 6px;
-    box-sizing: border-box;
     border: 1px solid #9a9a9a;
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.9);
@@ -68,12 +79,14 @@
   button:hover { opacity: 0.8; transform: scale(1.02); }
 
   .panel {
-    background: rgba(22, 47, 90, 0.92); /* Azul profundo con transparencia */
+    background: rgba(22, 47, 90, 0.92);
     padding: 20px;
     margin-bottom: 15px;
     border-radius: 12px;
     color: #fff;
     box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    width: 100%; /* Ocupa el ancho del contenedor padre */
+    max-width: 900px;
   }
 
   .row {
@@ -81,27 +94,27 @@
     flex-wrap: wrap;
     gap: 8px;
     justify-content: center;
+    width: 100%;
   }
 
   .btn-deshacer {
     background: #ff9800;
     color: white;
     font-weight: bold;
-    display: block;
     margin: 10px auto;
   }
 
-  .btn-logout { background: #d32f2f; color: white; float: right; }
-  .btn-add { background: #2e7d32; color: white; width: 160px; font-weight: bold; }
+  .btn-logout { background: #d32f2f; color: white; align-self: flex-end; }
+  .btn-add { background: #2e7d32; color: white; width: 200px; font-weight: bold; margin-top: 10px; }
 
   table {
     width: 100%;
     border-collapse: collapse;
-    background: rgba(245, 245, 245, 0.95); /* Fondo de tabla casi sólido para ver bien los datos */
+    background: rgba(245, 245, 245, 0.95);
     margin-top: 10px;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
 
   th, td {
@@ -115,17 +128,23 @@
   .bajo { background: rgba(255, 180, 180, 0.9); }
 
   .detail-row td {
-    background: rgba(235, 235, 235, 0.98);
+    background: rgba(230, 230, 230, 0.95);
     text-align: left;
+  }
+
+  /* Estilo específico para centrar el login */
+  #login {
+    max-width: 350px;
+    justify-content: center;
   }
 </style>
 </head>
 
 <body>
 
-<div id="login" class="panel" style="max-width: 350px; margin-top: 15vh;">
+<div id="login" class="panel">
   <h2>🔐 Acceso</h2>
-  <div style="display: flex; flex-direction: column; align-items: center;">
+  <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
     <input id="email" placeholder="Correo">
     <input id="pass" type="password" placeholder="Contraseña">
     <button onclick="login()" style="width: 180px; background: #2e7d32; color: white; margin-top: 10px;">Entrar</button>
@@ -164,7 +183,7 @@
       <textarea id="utilidad" placeholder="Descripción"></textarea>
       <textarea id="compatibilidad" placeholder="Compatibilidad"></textarea>
     </div>
-    <div style="text-align:center">
+    <div style="text-align:center; width: 100%;">
       <button class="btn-add" onclick="agregar()">Guardar en Base de Datos</button>
     </div>
   </div>
@@ -189,7 +208,6 @@
 </div>
 
 <script>
-// CONFIGURACIÓN FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyDYSgns53l27_8yrSFmsFXjvXN77m_XExk",
   authDomain: "inventario-app-134fa.firebaseapp.com",
@@ -220,10 +238,10 @@ function logout(){ auth.signOut(); }
 auth.onAuthStateChanged(user => {
   if(user){
     $("login").style.display = "none";
-    $("app").style.display = "block";
+    $("app").style.display = "flex"; // Cambiado a flex para mantener el centrado
     cargarDatos();
   } else {
-    $("login").style.display = "block";
+    $("login").style.display = "flex";
     $("app").style.display = "none";
     if(unsubscribe) unsubscribe();
   }
