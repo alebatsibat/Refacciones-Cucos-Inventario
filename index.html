@@ -189,7 +189,7 @@ const maxStock = document.getElementById("maxStock");
 
 /* AUTH */
 auth.onAuthStateChanged(user => {
-  if (user && user.email === ADMIN_EMAIL) {
+  if (user) {
     loginDiv.style.display = "none";
     app.style.display = "block";
     cargar();
