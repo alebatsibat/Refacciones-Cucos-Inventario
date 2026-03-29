@@ -5,16 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><style>
 body{
   font-family: Arial;
-  background:#e6e6e6;
+  background:#d6d6d6;
   color:#111;
   padding:20px;
 }
 
 h1,h2,h3{ text-align:center; }
 
-/* INPUTS UNIFORMES */
-input,
-textarea{
+input,textarea{
   font-family: inherit;
   font-size: 14px;
   width:180px;
@@ -24,33 +22,27 @@ textarea{
   box-sizing:border-box;
 }
 
-textarea{
-  resize:none;
-}
+textarea{ resize:none; }
 
 button{
   cursor:pointer;
   font-family: inherit;
   font-size: 14px;
-  width:auto;
-  height:auto;
   padding:6px 10px;
   margin:5px;
 }
 
 #app{ display:none; }
 
-/* 🔵 AZUL MÁS OSCURO EN PANELES */
+/* 🔵 AZUL MÁS OSCURO */
 .panel{
-  background:#2f5fa8;
+  background:#1f3f7a;
   padding:15px;
   margin-bottom:15px;
   border-radius:10px;
-  border:1px solid #234a86;
+  border:1px solid #142a52;
   color:#fff;
 }
-
-.panel h3{ color:#fff; }
 
 .row{
   display:flex;
@@ -62,23 +54,24 @@ button{
 table{
   width:100%;
   border-collapse:collapse;
-  background:#fff;
+  background:#f2f2f2;
   color:#111;
 }
 
 th,td{
-  border:1px solid #ccc;
+  border:1px solid #b5b5b5;
   padding:8px;
   text-align:center;
-  vertical-align:top;
 }
 
-th{ background:#f2f2f2; }
+th{
+  background:#c9c9c9;
+}
 
-.bajo{ background:#ffe5e5; }
+.bajo{ background:#ffd6d6; }
 
 .detail-row td{
-  background:#e6e6e6;
+  background:#cfcfcf;
   text-align:left;
 }
 </style></head><body><div id="login" class="panel">
@@ -143,71 +136,78 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let currentUser = null;
-let unsubscribe = null;
-let inventarioCache = [];
-let openRow = {};
-const STOCK_MINIMO = 5;
+let currentUser=null;
+let role="employee";
+let unsubscribe=null;
+let inventarioCache=[];
+let openRow={};
+const STOCK_MINIMO=5;
 
-const $ = id => document.getElementById(id);
+const $=id=>document.getElementById(id);
 
 function login(){
-  auth.signInWithEmailAndPassword($("email").value, $("pass").value)
-  .catch(e => alert(e.message));
+  auth.signInWithEmailAndPassword($("email").value,$("pass").value)
+  .catch(e=>alert(e.message));
 }
 
 function logout(){ auth.signOut(); }
 
-auth.onAuthStateChanged(user => {
-  currentUser = user;
+async function loadRole(uid){
+  const doc=await db.collection("users").doc(uid).get();
+  role=doc.exists?doc.data().role:"employee";
+}
+
+auth.onAuthStateChanged(async user=>{
+  currentUser=user;
   if(user){
     $("login").style.display="none";
     $("app").style.display="block";
+    await loadRole(user.uid);
     cargarDatos();
-  } else {
+  }else{
     $("login").style.display="block";
     $("app").style.display="none";
-    if(unsubscribe) unsubscribe();
+    if(unsubscribe)unsubscribe();
   }
 });
 
 function cargarDatos(){
-  if(unsubscribe) unsubscribe();
+  if(unsubscribe)unsubscribe();
 
-  unsubscribe = db.collection("inventario")
-    .where("uid","==",currentUser.uid)
-    .onSnapshot(snap => {
-      inventarioCache = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-      renderTabla();
-    });
+  unsubscribe=db.collection("inventario")
+  .where("uid","==",currentUser.uid)
+  .onSnapshot(snap=>{
+    inventarioCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderTabla();
+  });
 }
 
 function toggleRow(id){
-  openRow[id] = !openRow[id];
+  openRow[id]=!openRow[id];
   renderTabla();
 }
 
 function renderTabla(){
 
-  const serieF = $("buscarSerie").value.toLowerCase();
-  const marcaF = $("filtroMarca").value.toLowerCase();
-  const min = Number($("minStock").value);
-  const max = Number($("maxStock").value);
+  const serieF=$("buscarSerie").value.toLowerCase();
+  const marcaF=$("filtroMarca").value.toLowerCase();
+  const min=Number($("minStock").value);
+  const max=Number($("maxStock").value);
 
   $("tabla").innerHTML="";
 
   inventarioCache.forEach(i=>{
 
     if(
-      (serieF && !i.serie.toLowerCase().includes(serieF)) ||
-      (marcaF && !i.marca.toLowerCase().includes(marcaF)) ||
-      ($("minStock").value && i.cantidad < min) ||
-      ($("maxStock").value && i.cantidad > max)
-    ) return;
+      (serieF&&!i.serie.toLowerCase().includes(serieF))||
+      (marcaF&&!i.marca.toLowerCase().includes(marcaF))||
+      ($("minStock").value&&i.cantidad<min)||
+      ($("maxStock").value&&i.cantidad>max)
+    )return;
 
-    const open = openRow[i.id];
+    const open=openRow[i.id];
 
-    $("tabla").innerHTML += `
+    $("tabla").innerHTML+=`
       <tr class="${i.cantidad<=STOCK_MINIMO?'bajo':''}">
         <td>${i.serie}</td>
         <td>${i.pieza}</td>
@@ -215,14 +215,14 @@ function renderTabla(){
         <td>${i.cantidad}</td>
         <td>$${i.compra}</td>
         <td>$${i.venta}</td>
-        <td>$${i.venta - i.compra}</td>
+        <td>$${i.venta-i.compra}</td>
         <td><button onclick="toggleRow('${i.id}')">${open?'Ocultar':'Ver info'}</button></td>
         <td>
           <input id="m_${i.id}" type="number" style="width:60px">
           <button onclick="mov('${i.id}',1)">➕</button>
           <button onclick="mov('${i.id}',-1)">➖</button>
         </td>
-        <td><button onclick="del('${i.id}')">❌</button></td>
+        <td>${role==='admin'?`<button onclick="del('${i.id}')">❌</button>`:'-'}</td>
       </tr>
 
       <tr class="detail-row" style="display:${open?'table-row':'none'}">
@@ -247,8 +247,6 @@ function agregar(){
     utilidad:$("utilidad").value,
     compatibilidad:$("compatibilidad").value
   });
-
-  ["serie","pieza","marca","cantidad","compra","venta","utilidad","compatibilidad"].forEach(x=>$(x).value="");
 }
 
 function mov(id,dir){
@@ -264,6 +262,7 @@ function mov(id,dir){
 }
 
 function del(id){
+  if(role!=='admin')return;
   db.collection("inventario").doc(id).delete();
 }
 
