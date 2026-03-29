@@ -1,101 +1,43 @@
-<!DOCTYPE html>
-<html lang="es">
+<!DOCTYPE html><html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Inventario Pro (Mejorado)</title>
-
-<style>
-body {
+<title>Inventario Pro</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- Firebase (compat v8 para estilo db.collection) --><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script><style>
+body{
   font-family: Arial;
-  background: #111;
-  color: white;
-  padding: 20px;
+  background:#111;
+  color:white;
+  padding:20px;
 }
-
-h1, h2, h3 { text-align: center; }
-
-input, button {
-  padding: 8px;
-  margin: 5px;
+input,button{
+  margin:5px;
+  padding:8px;
 }
-
-button { cursor: pointer; }
-
-#app { display: none; }
-
-.panel {
-  background: #1b1b1b;
-  padding: 15px;
-  margin-bottom: 15px;
-  border-radius: 10px;
-  border: 1px solid #333;
-}
-
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-}
-
-table {
-  width: 100%;
-  margin-top: 20px;
+table{
+  width:100%;
   border-collapse: collapse;
 }
-
-th, td {
-  border: 1px solid #444;
-  padding: 8px;
-  text-align: center;
+td,th{
+  border:1px solid #333;
+  padding:6px;
 }
-
-.bajo { background: #5a0000; }
-
-small { color: #aaa; }
-</style>
-</head>
-
-<body>
-
-<div id="loginDiv">
-  <h2>🔐 Acceso</h2>
+.bajo{
+  background:#5a1a1a;
+}
+</style></head>
+<body><h2>Inventario Pro</h2><div id="login">
   <input id="email" placeholder="Correo">
-  <input id="password" type="password" placeholder="Contraseña">
-  <br>
+  <input id="pass" type="password" placeholder="Contraseña">
   <button onclick="login()">Entrar</button>
-</div>
-
-<div id="app">
-  <h1>🚗 Inventario Refacciones Cucos</h1>
-  <button onclick="logout()">Cerrar sesión</button>
-
-  <div class="panel">
-    <h3>🔎 Filtros</h3>
-    <div class="row">
-      <input id="buscarSerie" placeholder="Serie">
-      <input id="filtroMarca" placeholder="Marca">
-      <input id="minStock" type="number" placeholder="Stock mínimo">
-      <input id="maxStock" type="number" placeholder="Stock máximo">
-    </div>
-  </div>
-
-  <div class="panel">
-    <h3>➕ Nuevo producto</h3>
-    <div class="row">
-      <input id="serie" placeholder="Serie">
-      <input id="pieza" placeholder="Pieza">
-      <input id="marca" placeholder="Marca">
-      <input id="cantidad" type="number" placeholder="Cantidad">
-      <input id="compra" type="number" placeholder="Compra">
-      <input id="venta" type="number" placeholder="Venta">
-    </div>
-    <div style="text-align:center">
-      <button onclick="agregar()">Agregar</button>
-    </div>
-  </div>
-
-  <table>
+</div><div id="app" style="display:none;">  <input id="serie" placeholder="Serie">
+  <input id="pieza" placeholder="Pieza">
+  <input id="marca" placeholder="Marca">
+  <input id="cantidad" type="number" placeholder="Cantidad">
+  <input id="compra" type="number" placeholder="Compra">
+  <input id="venta" type="number" placeholder="Venta">
+  <button onclick="agregar()">Agregar</button>  <hr>  <input id="buscarSerie" placeholder="Buscar serie">
+  <input id="filtroMarca" placeholder="Filtrar marca">
+  <input id="minStock" type="number" placeholder="Min stock">
+  <input id="maxStock" type="number" placeholder="Max stock">  <table>
     <thead>
       <tr>
         <th>Serie</th>
@@ -105,174 +47,127 @@ small { color: #aaa; }
         <th>Compra</th>
         <th>Venta</th>
         <th>Ganancia</th>
-        <th>Movimiento</th>
+        <th>Mov</th>
         <th>Acción</th>
       </tr>
     </thead>
     <tbody id="tabla"></tbody>
-  </table>
-</div>
-
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
-<script>
-const ADMIN_EMAIL = "alebatsibat@gmail.com";
-const STOCK_MINIMO = 5;
-
+  </table></div><script>
+// CONFIG FIREBASE (pon la tuya)
 const firebaseConfig = {
-  apiKey: "AIzaSyDYSgns53l27_8yrSFmsFXjvXN77m_XExk",
-  authDomain: "inventario-app-134fa.firebaseapp.com",
-  projectId: "inventario-app-134fa",
-  storageBucket: "inventario-app-134fa.firebasestorage.app",
-  messagingSenderId: "414583075085",
-  appId: "1:414583075085:web:c4a1d0efe61c9f8ce28044"
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_AUTH",
+  projectId: "TU_PROJECT"
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let unsubscribe = null;
 let currentUser = null;
+let unsubscribe = null;
+let inventarioCache = [];
+const STOCK_MINIMO = 5;
 
-const $ = id => document.getElementById(id);
+function $(id){ return document.getElementById(id); }
 
-// LOGIN
-function login() {
-  auth.signInWithEmailAndPassword(
-    $('email').value,
-    $('password').value
-  ).catch(e => alert(e.message));
+function login(){
+  auth.signInWithEmailAndPassword($("email").value, $("pass").value)
+  .then(u=>{
+    currentUser = u.user;
+    $("login").style.display = "none";
+    $("app").style.display = "block";
+    cargarDatos();
+  })
+  .catch(e=>alert(e.message));
 }
 
-function logout() {
-  auth.signOut();
-}
+function cargarDatos(){
+  if(unsubscribe) unsubscribe();
 
-// AUTH STATE
-auth.onAuthStateChanged(user => {
-  currentUser = user;
+  unsubscribe = db.collection("inventario")
+    .where("uid","==",currentUser.uid)
+    .onSnapshot(snapshot=>{
 
-  if (user && user.email === ADMIN_EMAIL) {
-    $('loginDiv').style.display = 'none';
-    $('app').style.display = 'block';
+      inventarioCache = snapshot.docs.map(d=>({
+        id:d.id,
+        ...d.data()
+      }));
 
-    cargarDatos(user);
-  } else {
-    $('loginDiv').style.display = 'block';
-    $('app').style.display = 'none';
-
-    if (unsubscribe) unsubscribe();
-  }
-});
-
-// CARGAR DATOS
-function cargarDatos(user) {
-
-  if (!user) return;
-
-  if (unsubscribe) unsubscribe();
-
-  unsubscribe = db.collection('inventario')
-    .where('uid', '==', user.uid)
-    .onSnapshot(snapshot => {
-
-      const serieF = $('buscarSerie').value.toLowerCase();
-      const marcaF = $('filtroMarca').value.toLowerCase();
-      const min = Number($('minStock').value);
-      const max = Number($('maxStock').value);
-
-      $('tabla').innerHTML = '';
-
-      snapshot.forEach(doc => {
-        const i = doc.data();
-
-        if (
-          (serieF && !i.serie.toLowerCase().includes(serieF)) ||
-          (marcaF && !i.marca.toLowerCase().includes(marcaF)) ||
-          ($('minStock').value && i.cantidad < min) ||
-          ($('maxStock').value && i.cantidad > max)
-        ) return;
-
-        $('tabla').innerHTML += `
-          <tr class="${i.cantidad <= STOCK_MINIMO ? 'bajo' : ''}">
-            <td>${i.serie}</td>
-            <td>${i.pieza}</td>
-            <td>${i.marca}</td>
-            <td>${i.cantidad}</td>
-            <td>$${i.compra}</td>
-            <td>$${i.venta}</td>
-            <td>$${i.venta - i.compra}</td>
-            <td>
-              <input id="m_${doc.id}" type="number" style="width:70px">
-              <br>
-              <button onclick="mov('${doc.id}', 1)">➕</button>
-              <button onclick="mov('${doc.id}', -1)">➖</button>
-            </td>
-            <td><button onclick="del('${doc.id}')">❌</button></td>
-          </tr>
-        `;
-      });
+      renderTabla();
     });
 }
 
-// AGREGAR
-function agregar() {
-  const user = auth.currentUser;
-  if (!user) return;
+function renderTabla(){
 
-  db.collection('inventario').add({
-    serie: $('serie').value,
-    pieza: $('pieza').value,
-    marca: $('marca').value,
-    cantidad: Number($('cantidad').value),
-    compra: Number($('compra').value),
-    venta: Number($('venta').value),
-    uid: user.uid
-  });
+  const serieF = $("buscarSerie").value.toLowerCase();
+  const marcaF = $("filtroMarca").value.toLowerCase();
+  const min = Number($("minStock").value);
+  const max = Number($("maxStock").value);
 
-  ['serie','pieza','marca','cantidad','compra','venta']
-    .forEach(x => $(x).value = '');
-}
+  $("tabla").innerHTML = "";
 
-// MOVIMIENTO
-function mov(id, type) {
-  const input = $('m_' + id);
-  const val = Number(input.value);
-  if (!val) return alert('Cantidad inválida');
+  inventarioCache.forEach(i=>{
 
-  const ref = db.collection('inventario').doc(id);
+    if(
+      (serieF && !i.serie.toLowerCase().includes(serieF)) ||
+      (marcaF && !i.marca.toLowerCase().includes(marcaF)) ||
+      ($("minStock").value && i.cantidad < min) ||
+      ($("maxStock").value && i.cantidad > max)
+    ) return;
 
-  ref.get().then(d => {
-    let c = d.data().cantidad;
-
-    if (type === -1 && c < val) {
-      return alert('No hay stock');
-    }
-
-    ref.update({
-      cantidad: c + (val * type)
-    });
-
-    input.value = '';
+    $("tabla").innerHTML += `
+      <tr class="${i.cantidad <= STOCK_MINIMO ? 'bajo':''}">
+        <td>${i.serie}</td>
+        <td>${i.pieza}</td>
+        <td>${i.marca}</td>
+        <td>${i.cantidad}</td>
+        <td>$${i.compra}</td>
+        <td>$${i.venta}</td>
+        <td>$${i.venta - i.compra}</td>
+        <td>
+          <input id="m_${i.id}" type="number" style="width:60px">
+          <button onclick="mov('${i.id}',1)">➕</button>
+          <button onclick="mov('${i.id}',-1)">➖</button>
+        </td>
+        <td><button onclick="del('${i.id}')">❌</button></td>
+      </tr>
+    `;
   });
 }
 
-// DELETE
-function del(id) {
-  db.collection('inventario').doc(id).delete();
+function agregar(){
+  db.collection("inventario").add({
+    uid:currentUser.uid,
+    serie:$("serie").value,
+    pieza:$("pieza").value,
+    marca:$("marca").value,
+    cantidad:Number($("cantidad").value),
+    compra:Number($("compra").value),
+    venta:Number($("venta").value)
+  });
 }
 
-// FILTROS (IMPORTANTE: usar currentUser)
-$('buscarSerie').addEventListener('input', () => cargarDatos(currentUser));
-$('filtroMarca').addEventListener('input', () => cargarDatos(currentUser));
-$('minStock').addEventListener('input', () => cargarDatos(currentUser));
-$('maxStock').addEventListener('input', () => cargarDatos(currentUser));
+function mov(id,dir){
+  const input = document.getElementById("m_"+id);
+  const val = Number(input.value)||1;
 
-</script>
+  const item = inventarioCache.find(x=>x.id===id);
+  if(!item) return;
 
-</body>
+  db.collection("inventario").doc(id).update({
+    cantidad: item.cantidad + (val*dir)
+  });
+}
+
+function del(id){
+  db.collection("inventario").doc(id).delete();
+}
+
+$("buscarSerie").addEventListener("input",renderTabla);
+$("filtroMarca").addEventListener("input",renderTabla);
+$("minStock").addEventListener("input",renderTabla);
+$("maxStock").addEventListener("input",renderTabla);
+
+</script></body>
 </html>
