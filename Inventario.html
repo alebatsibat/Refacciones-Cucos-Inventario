@@ -1,1 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Inventario de Piezas</title>
 
+<style>
+body {
+  font-family: Arial;
+  background: #111;
+  color: white;
+  padding: 20px;
+}
+
+h1 { text-align: center; }
+
+input {
+  margin: 5px;
+  padding: 8px;
+}
+
+button {
+  padding: 6px;
+  cursor: pointer;
+}
+
+table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #444;
+  padding: 8px;
+  text-align: center;
+}
+
+.bajo {
+  background: #5a0000;
+}
+
+.acciones button {
+  margin: 2px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🚗 Inventario de Piezas</h1>
+
+<!-- FORM -->
+<input id="serie" placeholder="Número de serie">
+<input id="pieza" placeholder="Pieza">
+<input id="marca" placeholder="Marca">
+<input id="cantidad" type="number" placeholder="Cantidad">
+<input id="compra" type="number" placeholder="Precio compra">
+<input id="venta" type="number" placeholder="Precio venta">
+<button onclick="agregar()">Agregar</button>
+
+<br><br>
+
+<input id="buscar" placeholder="Buscar..." onkeyup="mostrar()">
+
+<!-- TABLA -->
+<table>
+<thead>
+<tr>
+<th>Número de serie</th>
+<th>Pieza</th>
+<th>Marca</th>
+<th>Cantidad</th>
+<th>Compra</th>
+<th>Venta</th>
+<th>Ganancia</th>
+<th>Movimientos</th>
+<th>Acción</th>
+</tr>
+</thead>
+<tbody id="tabla"></tbody>
+</table>
+
+<script>
+let inventario = JSON.parse(localStorage.getItem("inv")) || [];
+
+function guardar() {
+  localStorage.setItem("inv", JSON.stringify(inventario));
+}
+
+function agregar() {
+  let serieVal = document.getElementById("serie").value.trim();
+  let piezaVal = document.getElementById("pieza").value.trim();
+  let marcaVal = document.getElementById("marca").value.trim();
+  let cantidadVal = Number(document.getElementById("cantidad").value);
+  let compraVal = Number(document.getElementById("compra").value);
+  let ventaVal = Number(document.getElementById("venta").value);
+
+  if (!serieVal || !piezaVal || cantidadVal <= 0) {
+    alert("Llena correctamente los datos");
+    return;
+  }
+
+  let item = {
+    serie: serieVal,
+    pieza: piezaVal,
+    marca: marcaVal,
+    cantidad: cantidadVal,
+    compra: compraVal,
+    venta: ventaVal
+  };
+
+  inventario.push(item);
+  guardar();
+  limpiar();
+  mostrar();
+}
+
+function limpiar() {
+  document.getElementById("serie").value = "";
+  document.getElementById("pieza").value = "";
+  document.getElementById("marca").value = "";
+  document.getElementById("cantidad").value = "";
+  document.getElementById("compra").value = "";
+  document.getElementById("venta").value = "";
+}
+
+function eliminar(i) {
+  if (confirm("¿Eliminar este producto?")) {
+    inventario.splice(i, 1);
+    guardar();
+    mostrar();
+  }
+}
+
+// ➕ SUMAR STOCK
+function comprar(i) {
+  let cantidad = Number(prompt("¿Cuántas piezas compraste?"));
+
+  if (cantidad > 0) {
+    inventario[i].cantidad += cantidad;
+    guardar();
+    mostrar();
+  }
+}
+
+// ➖ RESTAR STOCK
+function vender(i) {
+  let cantidad = Number(prompt("¿Cuántas piezas vendiste?"));
+
+  if (cantidad > 0) {
+    if (inventario[i].cantidad >= cantidad) {
+      inventario[i].cantidad -= cantidad;
+      guardar();
+      mostrar();
+    } else {
+      alert("No tienes suficiente stock");
+    }
+  }
+}
+
+function mostrar() {
+  let filtro = document.getElementById("buscar").value.toLowerCase();
+  let tabla = document.getElementById("tabla");
+
+  tabla.innerHTML = "";
+
+  inventario.forEach((item, i) => {
+
+    if (
+      item.pieza.toLowerCase().includes(filtro) ||
+      item.serie.toLowerCase().includes(filtro)
+    ) {
+
+      let ganancia = item.venta - item.compra;
+      let clase = item.cantidad < 5 ? "bajo" : "";
+
+      tabla.innerHTML += `
+      <tr class="${clase}">
+        <td>${item.serie}</td>
+        <td>${item.pieza}</td>
+        <td>${item.marca}</td>
+        <td>${item.cantidad}</td>
+        <td>$${item.compra}</td>
+        <td>$${item.venta}</td>
+        <td>$${ganancia}</td>
+        <td class="acciones">
+          <button onclick="comprar(${i})">➕</button>
+          <button onclick="vender(${i})">➖</button>
+        </td>
+        <td><button onclick="eliminar(${i})">❌</button></td>
+      </tr>
+      `;
+    }
+  });
+}
+
+mostrar();
+</script>
+
+</body>
+  </html>
