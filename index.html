@@ -64,12 +64,18 @@ th, td {
 
   <br><br>
 
+  <!-- BUSCADOR -->
+  <input id="buscarSerie" placeholder="🔎 Buscar por número de serie">
+
+  <br><br>
+
   <input id="serie" placeholder="Número de serie">
   <input id="pieza" placeholder="Pieza">
   <input id="marca" placeholder="Marca">
   <input id="cantidad" type="number" placeholder="Cantidad">
   <input id="compra" type="number" placeholder="Precio compra">
   <input id="venta" type="number" placeholder="Precio venta">
+
   <button onclick="agregar()">Agregar</button>
 
   <table>
@@ -95,7 +101,7 @@ th, td {
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
-const ADMIN_EMAIL = "alebatsibat@gmail.com";
+const ADMIN_EMAIL = "tucorreo@gmail.com";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYSgns53l27_8yrSFmsFXjvXN77m_XExk",
@@ -110,13 +116,24 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// 🔐 LOGIN SOLO ADMIN
-function login() {
-  if (email.value !== ADMIN_EMAIL) {
-    alert("No tienes acceso");
-    return;
-  }
+/* ELEMENTOS */
+const email = document.getElementById("email");
+const password = document.getElementById("password");
 
+const serie = document.getElementById("serie");
+const pieza = document.getElementById("pieza");
+const marca = document.getElementById("marca");
+const cantidad = document.getElementById("cantidad");
+const compra = document.getElementById("compra");
+const venta = document.getElementById("venta");
+
+const tabla = document.getElementById("tabla");
+const loginDiv = document.getElementById("loginDiv");
+const app = document.getElementById("app");
+const buscarSerie = document.getElementById("buscarSerie");
+
+/* LOGIN */
+function login() {
   auth.signInWithEmailAndPassword(email.value, password.value)
     .catch(e => alert(e.message));
 }
@@ -125,7 +142,7 @@ function logout() {
   auth.signOut();
 }
 
-// 🔄 CONTROL SESIÓN
+/* SESIÓN */
 auth.onAuthStateChanged(user => {
   if (user && user.email === ADMIN_EMAIL) {
     loginDiv.style.display = "none";
@@ -137,10 +154,14 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-// ➕ AGREGAR
+/* AGREGAR */
 function agregar() {
   let user = auth.currentUser;
   if (!user) return;
+
+  if (!serie.value || !pieza.value) {
+    return alert("Faltan datos");
+  }
 
   db.collection("inventario").add({
     serie: serie.value,
@@ -151,10 +172,11 @@ function agregar() {
     venta: Number(venta.value),
     uid: user.uid
   });
+
   limpiar();
 }
 
-// 📡 TIEMPO REAL
+/* CARGAR + BUSCADOR */
 function cargarDatos() {
   let user = auth.currentUser;
   if (!user) return;
@@ -162,10 +184,15 @@ function cargarDatos() {
   db.collection("inventario")
     .where("uid", "==", user.uid)
     .onSnapshot(snapshot => {
+
       tabla.innerHTML = "";
+
+      let filtro = buscarSerie.value.toLowerCase();
 
       snapshot.forEach(doc => {
         let item = doc.data();
+
+        if (filtro && !item.serie.toLowerCase().includes(filtro)) return;
 
         tabla.innerHTML += `
           <tr class="${item.cantidad < 5 ? 'bajo' : ''}">
@@ -175,8 +202,10 @@ function cargarDatos() {
             <td>${item.cantidad}</td>
             <td>$${item.compra}</td>
             <td>$${item.venta}</td>
-            <td>$${item.venta - item.compra}</td>
+            <td>$${Number(item.venta - item.compra)}</td>
             <td>
+              <button onclick="vender('${doc.id}', ${item.cantidad})">➖</button>
+              <button onclick="comprar('${doc.id}', ${item.cantidad})">➕</button>
               <button onclick="eliminar('${doc.id}')">❌</button>
             </td>
           </tr>
@@ -185,12 +214,28 @@ function cargarDatos() {
     });
 }
 
-// ❌ ELIMINAR
+/* VENDER */
+function vender(id, cantidadActual) {
+  if (cantidadActual <= 0) return alert("Sin stock");
+
+  db.collection("inventario").doc(id).update({
+    cantidad: cantidadActual - 1
+  });
+}
+
+/* COMPRAR */
+function comprar(id, cantidadActual) {
+  db.collection("inventario").doc(id).update({
+    cantidad: cantidadActual + 1
+  });
+}
+
+/* ELIMINAR */
 function eliminar(id) {
   db.collection("inventario").doc(id).delete();
 }
 
-// 🧹 LIMPIAR
+/* LIMPIAR */
 function limpiar() {
   serie.value = "";
   pieza.value = "";
@@ -199,6 +244,9 @@ function limpiar() {
   compra.value = "";
   venta.value = "";
 }
+
+/* BUSCADOR EN TIEMPO REAL */
+buscarSerie.addEventListener("input", cargarDatos);
 </script>
 
 </body>
