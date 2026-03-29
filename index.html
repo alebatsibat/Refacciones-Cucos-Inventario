@@ -12,22 +12,27 @@ body {
   padding: 20px;
 }
 
+/* TÍTULOS */
 h1, h2 {
   text-align: center;
 }
 
+/* INPUTS */
 input {
   margin: 5px;
   padding: 8px;
 }
 
+/* BOTONES */
 button {
   padding: 6px;
   cursor: pointer;
 }
 
+/* APP OCULTA */
 #app { display: none; }
 
+/* TABLA */
 table {
   width: 100%;
   margin-top: 20px;
@@ -40,8 +45,30 @@ th, td {
   text-align: center;
 }
 
+/* STOCK BAJO */
 .bajo {
   background: #5a0000;
+}
+
+/* 🧩 PANELES */
+.panel {
+  background: #1b1b1b;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 10px;
+  border: 1px solid #333;
+}
+
+.panel h3 {
+  margin-top: 0;
+  text-align: center;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
 }
 </style>
 </head>
@@ -64,24 +91,37 @@ th, td {
 
   <br><br>
 
-  <!-- FILTROS -->
-  <input id="buscarSerie" placeholder="Buscar">
-  <input id="filtroMarca" placeholder="Marca">
-  <input id="minStock" type="number" placeholder="Stock mínimo">
-  <input id="maxStock" type="number" placeholder="Stock máximo">
+  <!-- 🔎 PANEL FILTROS -->
+  <div class="panel">
+    <h3>🔎 Filtros</h3>
 
-  <br><br>
+    <div class="row">
+      <input id="buscarSerie" placeholder="Buscar">
+      <input id="filtroMarca" placeholder="Marca">
+      <input id="minStock" type="number" placeholder="Stock mínimo">
+      <input id="maxStock" type="number" placeholder="Stock máximo">
+    </div>
+  </div>
 
-  <!-- FORMULARIO -->
-  <input id="serie" placeholder="Número de serie">
-  <input id="pieza" placeholder="Pieza">
-  <input id="marca" placeholder="Marca">
-  <input id="cantidad" type="number" placeholder="Cantidad inicial">
-  <input id="compra" type="number" placeholder="Precio compra">
-  <input id="venta" type="number" placeholder="Precio venta">
+  <!-- ➕ PANEL NUEVO PRODUCTO -->
+  <div class="panel">
+    <h3>➕ Nuevo producto</h3>
 
-  <button onclick="agregar()">Agregar</button>
+    <div class="row">
+      <input id="serie" placeholder="Número de serie">
+      <input id="pieza" placeholder="Pieza">
+      <input id="marca" placeholder="Marca">
+      <input id="cantidad" type="number" placeholder="Cantidad">
+      <input id="compra" type="number" placeholder="Compra">
+      <input id="venta" type="number" placeholder="Venta">
+    </div>
 
+    <div style="text-align:center; margin-top:10px;">
+      <button onclick="agregar()">Agregar</button>
+    </div>
+  </div>
+
+  <!-- 📦 TABLA -->
   <table>
     <thead>
       <tr>
@@ -134,13 +174,14 @@ const compra = document.getElementById("compra");
 const venta = document.getElementById("venta");
 
 const tabla = document.getElementById("tabla");
-const loginDiv = document.getElementById("loginDiv");
-const app = document.getElementById("app");
 
 const buscarSerie = document.getElementById("buscarSerie");
 const filtroMarca = document.getElementById("filtroMarca");
 const minStock = document.getElementById("minStock");
 const maxStock = document.getElementById("maxStock");
+
+const loginDiv = document.getElementById("loginDiv");
+const app = document.getElementById("app");
 
 /* LOGIN */
 function login() {
@@ -182,12 +223,12 @@ function agregar() {
   limpiar();
 }
 
-/* CARGAR */
+/* CARGAR DATOS */
 function cargarDatos() {
   let user = auth.currentUser;
   if (!user) return;
 
-  let alertasMostradas = new Set();
+  let alertas = new Set();
 
   db.collection("inventario")
     .where("uid", "==", user.uid)
@@ -195,28 +236,26 @@ function cargarDatos() {
 
       tabla.innerHTML = "";
 
-      let serieFiltro = buscarSerie.value.toLowerCase();
-      let marcaFiltro = filtroMarca.value.toLowerCase();
+      let serieF = buscarSerie.value.toLowerCase();
+      let marcaF = filtroMarca.value.toLowerCase();
       let min = Number(minStock.value);
       let max = Number(maxStock.value);
 
-      alertasMostradas.clear();
+      alertas.clear();
 
       snapshot.forEach(doc => {
         let item = doc.data();
 
-        /* FILTROS */
         if (
-          (serieFiltro && !item.serie.toLowerCase().includes(serieFiltro)) ||
-          (marcaFiltro && !item.marca.toLowerCase().includes(marcaFiltro)) ||
+          (serieF && !item.serie.toLowerCase().includes(serieF)) ||
+          (marcaF && !item.marca.toLowerCase().includes(marcaF)) ||
           (minStock.value && item.cantidad < min) ||
           (maxStock.value && item.cantidad > max)
         ) return;
 
-        /* ALERTA STOCK BAJO */
-        if (item.cantidad <= STOCK_MINIMO && !alertasMostradas.has(item.serie)) {
+        if (item.cantidad <= STOCK_MINIMO && !alertas.has(item.serie)) {
           alert(`⚠️ Stock bajo: ${item.serie} (${item.cantidad})`);
-          alertasMostradas.add(item.serie);
+          alertas.add(item.serie);
         }
 
         tabla.innerHTML += `
