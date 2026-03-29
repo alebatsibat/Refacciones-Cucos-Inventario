@@ -1,7 +1,10 @@
-<!DOCTYPE html><html lang="es">
+<!DOCTYPE html>
+<html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Inventario Pro (Mejorado)</title><style>
+<title>Inventario Pro (Mejorado)</title>
+
+<style>
 body {
   font-family: Arial;
   background: #111;
@@ -50,15 +53,24 @@ th, td {
 .bajo { background: #5a0000; }
 
 small { color: #aaa; }
-</style></head><body><div id="loginDiv">
+</style>
+</head>
+
+<body>
+
+<div id="loginDiv">
   <h2>🔐 Acceso</h2>
   <input id="email" placeholder="Correo">
   <input id="password" type="password" placeholder="Contraseña">
   <br>
   <button onclick="login()">Entrar</button>
-</div><div id="app">
-  <h1>🚗 Inventario Pro</h1>
-  <button onclick="logout()">Cerrar sesión</button>  <div class="panel">
+</div>
+
+<div id="app">
+  <h1>🚗 Inventario Refacciones Cucos</h1>
+  <button onclick="logout()">Cerrar sesión</button>
+
+  <div class="panel">
     <h3>🔎 Filtros</h3>
     <div class="row">
       <input id="buscarSerie" placeholder="Serie">
@@ -66,7 +78,9 @@ small { color: #aaa; }
       <input id="minStock" type="number" placeholder="Stock mínimo">
       <input id="maxStock" type="number" placeholder="Stock máximo">
     </div>
-  </div>  <div class="panel">
+  </div>
+
+  <div class="panel">
     <h3>➕ Nuevo producto</h3>
     <div class="row">
       <input id="serie" placeholder="Serie">
@@ -79,7 +93,9 @@ small { color: #aaa; }
     <div style="text-align:center">
       <button onclick="agregar()">Agregar</button>
     </div>
-  </div>  <table>
+  </div>
+
+  <table>
     <thead>
       <tr>
         <th>Serie</th>
@@ -95,7 +111,13 @@ small { color: #aaa; }
     </thead>
     <tbody id="tabla"></tbody>
   </table>
-</div><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><script>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
 const ADMIN_EMAIL = "alebatsibat@gmail.com";
 const STOCK_MINIMO = 5;
 
@@ -109,32 +131,48 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+
 const auth = firebase.auth();
 const db = firebase.firestore();
 
 let unsubscribe = null;
+let currentUser = null;
 
 const $ = id => document.getElementById(id);
 
+// LOGIN
 function login() {
-  auth.signInWithEmailAndPassword($('email').value, $('password').value)
-    .catch(e => alert(e.message));
+  auth.signInWithEmailAndPassword(
+    $('email').value,
+    $('password').value
+  ).catch(e => alert(e.message));
 }
 
-function logout() { auth.signOut(); }
+function logout() {
+  auth.signOut();
+}
 
+// AUTH STATE
 auth.onAuthStateChanged(user => {
+  currentUser = user;
+
   if (user && user.email === ADMIN_EMAIL) {
     $('loginDiv').style.display = 'none';
     $('app').style.display = 'block';
-    cargarDatos();
+
+    cargarDatos(user);
   } else {
     $('loginDiv').style.display = 'block';
     $('app').style.display = 'none';
+
+    if (unsubscribe) unsubscribe();
   }
 });
 
+// CARGAR DATOS
 function cargarDatos(user) {
+
+  if (!user) return;
 
   if (unsubscribe) unsubscribe();
 
@@ -181,6 +219,7 @@ function cargarDatos(user) {
     });
 }
 
+// AGREGAR
 function agregar() {
   const user = auth.currentUser;
   if (!user) return;
@@ -195,9 +234,11 @@ function agregar() {
     uid: user.uid
   });
 
-  ['serie','pieza','marca','cantidad','compra','venta'].forEach(x => $(x).value='');
+  ['serie','pieza','marca','cantidad','compra','venta']
+    .forEach(x => $(x).value = '');
 }
 
+// MOVIMIENTO
 function mov(id, type) {
   const input = $('m_' + id);
   const val = Number(input.value);
@@ -207,20 +248,31 @@ function mov(id, type) {
 
   ref.get().then(d => {
     let c = d.data().cantidad;
-    if (type === -1 && c < val) return alert('No hay stock');
-    ref.update({ cantidad: c + (val * type) });
+
+    if (type === -1 && c < val) {
+      return alert('No hay stock');
+    }
+
+    ref.update({
+      cantidad: c + (val * type)
+    });
+
     input.value = '';
   });
 }
 
+// DELETE
 function del(id) {
   db.collection('inventario').doc(id).delete();
 }
 
-$('buscarSerie').addEventListener('input', cargarDatos);
-$('filtroMarca').addEventListener('input', cargarDatos);
-$('minStock').addEventListener('input', cargarDatos);
-$('maxStock').addEventListener('input', cargarDatos);
+// FILTROS (IMPORTANTE: usar currentUser)
+$('buscarSerie').addEventListener('input', () => cargarDatos(currentUser));
+$('filtroMarca').addEventListener('input', () => cargarDatos(currentUser));
+$('minStock').addEventListener('input', () => cargarDatos(currentUser));
+$('maxStock').addEventListener('input', () => cargarDatos(currentUser));
 
-</script></body>
+</script>
+
+</body>
 </html>
