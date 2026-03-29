@@ -10,59 +10,77 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
-  body{
+  body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background:#cfcfcf;
-    color:#111;
-    padding:20px;
-    margin:0;
+    color: #111;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    /* --- CONFIGURACIÓN DEL FONDO --- */
+    background-color: #cfcfcf; 
+    /* Usamos tu link con un degradado encima para que el texto sea legible */
+    background-image: linear-gradient(rgba(207, 207, 207, 0.75), rgba(207, 207, 207, 0.85)), 
+                      url('https://share.google/6K8SbCg36gWMnqiCJ'); 
+    
+    background-size: cover;       /* La imagen cubre toda la pantalla */
+    background-position: center;  /* LA IMAGEN SE CENTRA EN MEDIO */
+    background-attachment: fixed; /* La imagen no se mueve al hacer scroll */
+    background-repeat: no-repeat;
   }
 
-  h1, h2, h3{ text-align:center; margin-top: 10px; }
+  #login, #app {
+    width: 95%;
+    max-width: 1100px;
+    margin: 20px auto;
+  }
 
-  input, textarea{
+  h1, h2, h3 { text-align: center; margin-top: 10px; text-shadow: 1px 1px 2px rgba(255,255,255,0.5); }
+
+  input, textarea {
     font-family: inherit;
     font-size: 14px;
-    width:180px;
-    height:36px;
-    margin:5px;
-    padding:6px;
-    box-sizing:border-box;
+    width: 180px;
+    height: 36px;
+    margin: 5px;
+    padding: 6px;
+    box-sizing: border-box;
     border: 1px solid #9a9a9a;
     border-radius: 4px;
+    background: rgba(255, 255, 255, 0.9);
   }
 
-  textarea{ resize:none; height: 60px; }
+  textarea { resize: none; height: 60px; }
 
-  button{
-    cursor:pointer;
+  button {
+    cursor: pointer;
     font-family: inherit;
     font-size: 14px;
-    padding:8px 12px;
-    margin:5px;
+    padding: 8px 12px;
+    margin: 5px;
     border: none;
     border-radius: 4px;
     transition: 0.2s;
   }
 
-  button:hover{ opacity: 0.8; }
+  button:hover { opacity: 0.8; transform: scale(1.02); }
 
-  #app{ display:none; max-width: 1200px; margin: 0 auto; }
-
-  .panel{
-    background:#162f5a;
-    padding:15px;
-    margin-bottom:15px;
-    border-radius:10px;
-    color:#fff;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  .panel {
+    background: rgba(22, 47, 90, 0.92); /* Azul profundo con transparencia */
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 12px;
+    color: #fff;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
   }
 
-  .row{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    justify-content:center;
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
   }
 
   .btn-deshacer {
@@ -71,86 +89,83 @@
     font-weight: bold;
     display: block;
     margin: 10px auto;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   }
 
-  .btn-logout { background: #d32f2f; color: white; }
-  .btn-add { background: #2e7d32; color: white; width: 150px; }
+  .btn-logout { background: #d32f2f; color: white; float: right; }
+  .btn-add { background: #2e7d32; color: white; width: 160px; font-weight: bold; }
 
-  table{
-    width:100%;
-    border-collapse:collapse;
-    background:#e6e6e6;
-    color:#111;
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(245, 245, 245, 0.95); /* Fondo de tabla casi sólido para ver bien los datos */
     margin-top: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
 
-  th, td{
-    border:1px solid #9a9a9a;
-    padding:10px;
-    text-align:center;
+  th, td {
+    border: 1px solid #ccc;
+    padding: 12px;
+    text-align: center;
   }
 
-  th{ background:#bdbdbd; }
+  th { background: #ddd; color: #333; }
 
-  .bajo{ background:#ffcdcd; }
+  .bajo { background: rgba(255, 180, 180, 0.9); }
 
-  .detail-row td{
-    background:#d9d9d9;
-    text-align:left;
-    padding: 15px;
+  .detail-row td {
+    background: rgba(235, 235, 235, 0.98);
+    text-align: left;
   }
 </style>
 </head>
 
 <body>
 
-<div id="login" class="panel" style="max-width: 400px; margin: 100px auto;">
-  <h2>🔐 Acceso Inventario</h2>
+<div id="login" class="panel" style="max-width: 350px; margin-top: 15vh;">
+  <h2>🔐 Acceso</h2>
   <div style="display: flex; flex-direction: column; align-items: center;">
-    <input id="email" placeholder="Correo electrónico">
+    <input id="email" placeholder="Correo">
     <input id="pass" type="password" placeholder="Contraseña">
-    <button onclick="login()" style="width: 180px; background: #2e7d32; color: white;">Entrar</button>
+    <button onclick="login()" style="width: 180px; background: #2e7d32; color: white; margin-top: 10px;">Entrar</button>
   </div>
 </div>
 
 <div id="app">
+  <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
   <h1>🚗 Inventario Pro</h1>
   
-  <div style="text-align: right;">
-    <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
-  </div>
-
   <button id="btnDeshacer" class="btn-deshacer" onclick="deshacer()" style="display:none;">
     ↩️ Deshacer última eliminación
   </button>
 
   <div class="panel">
-    <h3>🔎 Filtros de búsqueda</h3>
+    <h3>🔎 Filtros</h3>
     <div class="row">
-      <input id="buscarSerie" placeholder="Buscar por Serie">
-      <input id="filtroMarca" placeholder="Buscar por Marca">
+      <input id="buscarSerie" placeholder="Serie">
+      <input id="filtroMarca" placeholder="Marca">
       <input id="minStock" type="number" placeholder="Stock mín">
       <input id="maxStock" type="number" placeholder="Stock máx">
     </div>
   </div>
 
   <div class="panel">
-    <h3>➕ Registrar Nuevo Producto</h3>
+    <h3>➕ Nuevo Producto</h3>
     <div class="row">
       <input id="serie" placeholder="Serie">
-      <input id="pieza" placeholder="Nombre de Pieza">
+      <input id="pieza" placeholder="Pieza">
       <input id="marca" placeholder="Marca">
       <input id="cantidad" type="number" placeholder="Cantidad">
-      <input id="compra" type="number" placeholder="Precio Compra">
-      <input id="venta" type="number" placeholder="Precio Venta">
+      <input id="compra" type="number" placeholder="Compra">
+      <input id="venta" type="number" placeholder="Venta">
     </div>
     <div class="row">
-      <textarea id="utilidad" placeholder="Descripción / Utilidad"></textarea>
-      <textarea id="compatibilidad" placeholder="Modelos compatibles"></textarea>
+      <textarea id="utilidad" placeholder="Descripción"></textarea>
+      <textarea id="compatibilidad" placeholder="Compatibilidad"></textarea>
     </div>
     <div style="text-align:center">
-      <button class="btn-add" onclick="agregar()">Guardar</button>
+      <button class="btn-add" onclick="agregar()">Guardar en Base de Datos</button>
     </div>
   </div>
 
@@ -160,13 +175,13 @@
         <th>Serie</th>
         <th>Pieza</th>
         <th>Marca</th>
-        <th>Cant.</th>
+        <th>Stock</th>
         <th>Compra</th>
         <th>Venta</th>
         <th>Ganancia</th>
         <th>Info</th>
         <th>Mov</th>
-        <th>Acción</th>
+        <th>Borrar</th>
       </tr>
     </thead>
     <tbody id="tabla"></tbody>
@@ -189,17 +204,15 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let inventarioCache = [];
-let ultimoEliminado = null; // Memoria temporal para deshacer
+let ultimoEliminado = null;
 let unsubscribe = null;
 let openRow = {};
 const STOCK_MINIMO = 5;
 
 const $ = id => document.getElementById(id);
 
-// AUTH & LOGIN
 function login(){
-  auth.signInWithEmailAndPassword($("email").value, $("pass").value)
-    .catch(e => alert("Error: " + e.message));
+  auth.signInWithEmailAndPassword($("email").value, $("pass").value).catch(e => alert(e.message));
 }
 
 function logout(){ auth.signOut(); }
@@ -216,7 +229,6 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-// SYNC FIRESTORE
 function cargarDatos(){
   if(unsubscribe) unsubscribe();
   unsubscribe = db.collection("inventario").onSnapshot(snap => {
@@ -230,41 +242,39 @@ function renderTabla(){
   const marcaF = $("filtroMarca").value.toLowerCase();
   const min = Number($("minStock").value);
   const max = Number($("maxStock").value);
-
+  
   $("tabla").innerHTML = "";
 
   inventarioCache.forEach(i => {
     if(
-      (serieF && !i.serie?.toLowerCase().includes(serieF)) ||
+      (serieF && !i.serie?.toLowerCase().includes(serieF)) || 
       (marcaF && !i.marca?.toLowerCase().includes(marcaF)) ||
       ($("minStock").value && i.cantidad < min) ||
       ($("maxStock").value && i.cantidad > max)
     ) return;
 
     const open = openRow[i.id];
-    const ganancia = (i.venta || 0) - (i.compra || 0);
-
     $("tabla").innerHTML += `
       <tr class="${i.cantidad <= STOCK_MINIMO ? 'bajo' : ''}">
         <td>${i.serie || '-'}</td>
         <td>${i.pieza || '-'}</td>
         <td>${i.marca || '-'}</td>
-        <td><b>${i.cantidad}</b></td>
+        <td>${i.cantidad}</td>
         <td>$${i.compra}</td>
         <td>$${i.venta}</td>
-        <td>$${ganancia}</td>
-        <td><button onclick="toggleRow('${i.id}')">${open ? 'Hide' : 'Info'}</button></td>
+        <td>$${(i.venta - i.compra).toFixed(2)}</td>
+        <td><button onclick="toggleRow('${i.id}')">${open ? 'Cerrar' : 'Ver'}</button></td>
         <td>
-          <input id="m_${i.id}" type="number" style="width:50px; margin:0">
+          <input id="m_${i.id}" type="number" style="width:45px; margin:0">
           <button onclick="mov('${i.id}',1)">+</button>
           <button onclick="mov('${i.id}',-1)">-</button>
         </td>
-        <td><button onclick="del('${i.id}')" style="background:none; font-size:18px;">🗑️</button></td>
+        <td><button onclick="del('${i.id}')" style="background:transparent; font-size:18px;">🗑️</button></td>
       </tr>
       <tr class="detail-row" style="display:${open ? 'table-row' : 'none'}">
         <td colspan="10">
-          <strong>Descripción:</strong> ${i.utilidad || 'Sin descripción'}<br>
-          <strong>Compatibilidad:</strong> ${i.compatibilidad || 'No especificada'}
+          <b>Descripción:</b> ${i.utilidad || 'Sin descripción'}<br>
+          <b>Compatibilidad:</b> ${i.compatibilidad || 'No especificada'}
         </td>
       </tr>
     `;
@@ -273,9 +283,8 @@ function renderTabla(){
 
 function toggleRow(id){ openRow[id] = !openRow[id]; renderTabla(); }
 
-// OPERACIONES CRUD
 function agregar(){
-  const nuevo = {
+  db.collection("inventario").add({
     serie: $("serie").value,
     pieza: $("pieza").value,
     marca: $("marca").value,
@@ -284,50 +293,38 @@ function agregar(){
     venta: Number($("venta").value) || 0,
     utilidad: $("utilidad").value,
     compatibilidad: $("compatibilidad").value
-  };
-
-  db.collection("inventario").add(nuevo).then(() => {
-    // Limpiar campos
-    ["serie","pieza","marca","cantidad","compra","venta","utilidad","compatibilidad"].forEach(id => $(id).value = "");
+  }).then(() => {
+    ["serie","pieza","marca","cantidad","compra","venta","utilidad","compatibilidad"].forEach(el => $(el).value = "");
   });
 }
 
 function mov(id, dir){
-  const input = $("m_" + id);
-  const val = Number(input.value) || 1;
+  const val = Number($("m_"+id).value) || 1;
   const item = inventarioCache.find(x => x.id === id);
-  if(!item) return;
   db.collection("inventario").doc(id).update({ cantidad: item.cantidad + (val * dir) });
-  input.value = "";
+  $("m_"+id).value = "";
 }
 
-// BORRAR Y DESHACER
 function del(id){
   const item = inventarioCache.find(x => x.id === id);
-  if(!item) return;
-
-  if(confirm(`¿Eliminar "${item.pieza}"?`)){
-    ultimoEliminado = { ...item }; // Guardar copia
-    db.collection("inventario").doc(id).delete().then(() => {
-      $("btnDeshacer").style.display = "block"; // Mostrar botón deshacer
-      setTimeout(() => { $("btnDeshacer").style.display = "none"; }, 8000); // Desaparece en 8 seg
-    });
-  }
+  if(!confirm("¿Borrar " + item.pieza + "?")) return;
+  ultimoEliminado = { ...item };
+  db.collection("inventario").doc(id).delete().then(() => {
+    $("btnDeshacer").style.display = "block";
+    setTimeout(() => $("btnDeshacer").style.display = "none", 10000);
+  });
 }
 
 function deshacer(){
   if(!ultimoEliminado) return;
-  const { id, ...datos } = ultimoEliminado;
-  db.collection("inventario").doc(id).set(datos).then(() => {
+  const { id, ...data } = ultimoEliminado;
+  db.collection("inventario").doc(id).set(data).then(() => {
     ultimoEliminado = null;
     $("btnDeshacer").style.display = "none";
   });
 }
 
-// LISTENERS FILTROS
-["buscarSerie", "filtroMarca", "minStock", "maxStock"].forEach(id => {
-  $(id).addEventListener("input", renderTabla);
-});
+["buscarSerie", "filtroMarca", "minStock", "maxStock"].forEach(id => $(id).addEventListener("input", renderTabla));
 
 </script>
 </body>
