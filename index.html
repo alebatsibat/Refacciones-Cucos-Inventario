@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Inventario con Login</title>
+<title>Inventario Pro</title>
 
 <style>
 body {
@@ -77,8 +77,6 @@ th, td {
 
   <br><br>
 
-  <input id="buscar" placeholder="Buscar..." onkeyup="mostrar()">
-
   <table>
     <thead>
       <tr>
@@ -89,8 +87,6 @@ th, td {
         <th>Compra</th>
         <th>Venta</th>
         <th>Ganancia</th>
-        <th>Movimientos</th>
-        <th>Acción</th>
       </tr>
     </thead>
     <tbody id="tabla"></tbody>
@@ -100,9 +96,9 @@ th, td {
 <!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
-// 🔥 CONFIG DE FIREBASE (YA LISTA)
 const firebaseConfig = {
   apiKey: "AIzaSyDYSgns53l27_8yrSFmsFXjvXN77m_XExk",
   authDomain: "inventario-app-134fa.firebaseapp.com",
@@ -114,127 +110,94 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+const db = firebase.firestore();
 
-// 🔐 REGISTRO
+// 🔐 AUTH
 function registrar() {
-  let email = document.getElementById("email").value;
-  let password = document.getElementById("password").value;
-
-  auth.createUserWithEmailAndPassword(email, password)
+  auth.createUserWithEmailAndPassword(email.value, password.value)
     .then(() => alert("Usuario creado"))
     .catch(e => alert(e.message));
 }
 
-// 🔑 LOGIN
 function login() {
-  let email = document.getElementById("email").value;
-  let password = document.getElementById("password").value;
-
-  auth.signInWithEmailAndPassword(email, password)
+  auth.signInWithEmailAndPassword(email.value, password.value)
     .then(() => alert("Bienvenido"))
     .catch(e => alert(e.message));
 }
 
-// 🚪 LOGOUT
 function logout() {
   auth.signOut();
 }
 
-// 🔐 CONTROL DE SESIÓN
+// 🔄 CONTROL DE SESIÓN
 auth.onAuthStateChanged(user => {
   if (user) {
-    document.getElementById("login").style.display = "none";
-    document.getElementById("app").style.display = "block";
+    loginDiv.style.display = "none";
+    app.style.display = "block";
+    cargarDatos();
   } else {
-    document.getElementById("login").style.display = "block";
-    document.getElementById("app").style.display = "none";
+    loginDiv.style.display = "block";
+    app.style.display = "none";
   }
 });
 
-// 📦 INVENTARIO
-let inventario = JSON.parse(localStorage.getItem("inv")) || [];
-
-function guardar() {
-  localStorage.setItem("inv", JSON.stringify(inventario));
-}
-
+// 📦 GUARDAR
 function agregar() {
-  let serie = document.getElementById("serie").value;
-  let pieza = document.getElementById("pieza").value;
-  let marca = document.getElementById("marca").value;
-  let cantidad = Number(document.getElementById("cantidad").value);
-  let compra = Number(document.getElementById("compra").value);
-  let venta = Number(document.getElementById("venta").value);
+  let user = auth.currentUser;
+  if (!user) return;
 
-  if (!serie || !pieza || cantidad <= 0) {
-    alert("Llena bien los datos");
-    return;
-  }
-
-  inventario.push({ serie, pieza, marca, cantidad, compra, venta });
-  guardar();
-  mostrar();
-}
-
-function comprar(i) {
-  let c = Number(prompt("¿Cuántas piezas compraste?"));
-  if (c > 0) {
-    inventario[i].cantidad += c;
-    guardar();
-    mostrar();
-  }
-}
-
-function vender(i) {
-  let c = Number(prompt("¿Cuántas piezas vendiste?"));
-  if (c > 0 && inventario[i].cantidad >= c) {
-    inventario[i].cantidad -= c;
-    guardar();
-    mostrar();
-  } else {
-    alert("Stock insuficiente");
-  }
-}
-
-function eliminar(i) {
-  inventario.splice(i, 1);
-  guardar();
-  mostrar();
-}
-
-function mostrar() {
-  let filtro = document.getElementById("buscar").value.toLowerCase();
-  let tabla = document.getElementById("tabla");
-
-  tabla.innerHTML = "";
-
-  inventario.forEach((item, i) => {
-    if (
-      item.pieza.toLowerCase().includes(filtro) ||
-      item.serie.toLowerCase().includes(filtro)
-    ) {
-      let clase = item.cantidad < 5 ? "bajo" : "";
-      tabla.innerHTML += `
-        <tr class="${clase}">
-          <td>${item.serie}</td>
-          <td>${item.pieza}</td>
-          <td>${item.marca}</td>
-          <td>${item.cantidad}</td>
-          <td>$${item.compra}</td>
-          <td>$${item.venta}</td>
-          <td>$${item.venta - item.compra}</td>
-          <td>
-            <button onclick="comprar(${i})">➕</button>
-            <button onclick="vender(${i})">➖</button>
-          </td>
-          <td><button onclick="eliminar(${i})">❌</button></td>
-        </tr>
-      `;
-    }
+  db.collection("inventario").add({
+    serie: serie.value,
+    pieza: pieza.value,
+    marca: marca.value,
+    cantidad: Number(cantidad.value),
+    compra: Number(compra.value),
+    venta: Number(venta.value),
+    uid: user.uid
+  }).then(() => {
+    limpiar();
+    cargarDatos();
   });
 }
 
-mostrar();
+// 📥 CARGAR
+function cargarDatos() {
+  let user = auth.currentUser;
+  if (!user) return;
+
+  tabla.innerHTML = "";
+
+  db.collection("inventario")
+    .where("uid", "==", user.uid)
+    .get()
+    .then(snapshot => {
+      snapshot.forEach(doc => {
+        let item = doc.data();
+
+        tabla.innerHTML += `
+          <tr>
+            <td>${item.serie}</td>
+            <td>${item.pieza}</td>
+            <td>${item.marca}</td>
+            <td>${item.cantidad}</td>
+            <td>$${item.compra}</td>
+            <td>$${item.venta}</td>
+            <td>$${item.venta - item.compra}</td>
+          </tr>
+        `;
+      });
+    });
+}
+
+// 🧹 LIMPIAR
+function limpiar() {
+  serie.value = "";
+  pieza.value = "";
+  marca.value = "";
+  cantidad.value = "";
+  compra.value = "";
+  venta.value = "";
+}
 </script>
 
 </body>
