@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Inventario Pro</title>
+<title>Inventario</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- Firebase --><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><style>
 body{
   font-family: Arial;
@@ -34,7 +34,6 @@ button{
 
 #app{ display:none; }
 
-/* 🔵 AZUL MÁS OSCURO */
 .panel{
   background:#162f5a;
   padding:15px;
@@ -80,7 +79,7 @@ th{
   <input id="pass" type="password" placeholder="Contraseña">
   <br>
   <button onclick="login()">Entrar</button>
-</div><div id="app">  <h1>🚗 Inventario Pro</h1>
+</div><div id="app">  <h1>🚗 Inventario</h1>
   <button onclick="logout()">Cerrar sesión</button>  <div class="panel">
     <h3>🔎 Filtros</h3>
     <div class="row">
@@ -153,13 +152,11 @@ function login(){
 
 function logout(){ auth.signOut(); }
 
-// 🔐 Obtener rol desde Firestore
 async function loadRole(uid){
   const doc = await db.collection("users").doc(uid).get();
   role = doc.exists ? doc.data().role : "employee";
 }
 
-// 🔑 Auth listener
 auth.onAuthStateChanged(async user => {
   currentUser = user;
 
@@ -177,11 +174,11 @@ auth.onAuthStateChanged(async user => {
   }
 });
 
+// ✅ GLOBAL INVENTORY (SIN FILTRO UID)
 function cargarDatos(){
   if(unsubscribe) unsubscribe();
 
   unsubscribe = db.collection("inventario")
-    .where("uid", "==", currentUser.uid)
     .onSnapshot(snap => {
       inventarioCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderTabla();
