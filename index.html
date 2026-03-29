@@ -54,14 +54,19 @@ th,td{
   opacity:0.9;
   white-space:pre-wrap;
 }
-</style></head><body><!-- LOGIN --><div id="login" class="panel">
+
+.detail-row td{
+  background:#1a1a1a;
+  text-align:left;
+}
+</style></head><body><div id="login" class="panel">
   <h2>🔐 Acceso</h2>
   <input id="email" placeholder="Correo">
   <input id="pass" type="password" placeholder="Contraseña">
   <br>
   <button onclick="login()">Entrar</button>
-</div><!-- APP --><div id="app">  <h1>🚗 Inventario Refacciones</h1>
-  <button onclick="logout()">Cerrar sesión</button>  <!-- FILTROS -->  <div class="panel">
+</div><div id="app">  <h1>🚗 Inventario Refacciones</h1>
+  <button onclick="logout()">Cerrar sesión</button>  <div class="panel">
     <h3>🔎 Filtros</h3>
     <div class="row">
       <input id="buscarSerie" placeholder="Serie">
@@ -69,7 +74,7 @@ th,td{
       <input id="minStock" type="number" placeholder="Stock mínimo">
       <input id="maxStock" type="number" placeholder="Stock máximo">
     </div>
-  </div>  <!-- PRODUCTOS -->  <div class="panel">
+  </div>  <div class="panel">
     <h3>➕ Nuevo producto</h3>
     <div class="row">
       <input id="serie" placeholder="Serie">
@@ -119,7 +124,7 @@ const db = firebase.firestore();
 let currentUser = null;
 let unsubscribe = null;
 let inventarioCache = [];
-let infoOpen = {};
+let openRow = {};
 const STOCK_MINIMO = 5;
 
 const $ = id => document.getElementById(id);
@@ -129,20 +134,17 @@ function login(){
   .catch(e => alert(e.message));
 }
 
-function logout(){
-  auth.signOut();
-}
+function logout(){ auth.signOut(); }
 
 auth.onAuthStateChanged(user => {
   currentUser = user;
-
   if(user){
-    $("login").style.display = "none";
-    $("app").style.display = "block";
+    $("login").style.display="none";
+    $("app").style.display="block";
     cargarDatos();
   } else {
-    $("login").style.display = "block";
-    $("app").style.display = "none";
+    $("login").style.display="block";
+    $("app").style.display="none";
     if(unsubscribe) unsubscribe();
   }
 });
@@ -152,19 +154,14 @@ function cargarDatos(){
 
   unsubscribe = db.collection("inventario")
     .where("uid","==",currentUser.uid)
-    .onSnapshot(snapshot => {
-
-      inventarioCache = snapshot.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-      }));
-
+    .onSnapshot(snap => {
+      inventarioCache = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       renderTabla();
     });
 }
 
-function toggleInfo(id){
-  infoOpen[id] = !infoOpen[id];
+function toggleRow(id){
+  openRow[id] = !openRow[id];
   renderTabla();
 }
 
@@ -175,9 +172,9 @@ function renderTabla(){
   const min = Number($("minStock").value);
   const max = Number($("maxStock").value);
 
-  $("tabla").innerHTML = "";
+  $("tabla").innerHTML="";
 
-  inventarioCache.forEach(i => {
+  inventarioCache.forEach(i=>{
 
     if(
       (serieF && !i.serie.toLowerCase().includes(serieF)) ||
@@ -186,10 +183,10 @@ function renderTabla(){
       ($("maxStock").value && i.cantidad > max)
     ) return;
 
-    const open = infoOpen[i.id];
+    const open = openRow[i.id];
 
     $("tabla").innerHTML += `
-      <tr class="${i.cantidad <= STOCK_MINIMO ? 'bajo' : ''}">
+      <tr class="${i.cantidad<=STOCK_MINIMO?'bajo':''}">
         <td>${i.serie}</td>
         <td>${i.pieza}</td>
         <td>${i.marca}</td>
@@ -197,15 +194,7 @@ function renderTabla(){
         <td>$${i.compra}</td>
         <td>$${i.venta}</td>
         <td>$${i.venta - i.compra}</td>
-        <td>
-          <button onclick="toggleInfo('${i.id}')">
-            ${open ? 'Ocultar info' : 'Ver info'}
-          </button>
-          <div class="small" style="display:${open ? 'block' : 'none'}; margin-top:5px;">
-            <b>Utilidad:</b><br>${i.utilidad || ''}<br><br>
-            <b>Compatibilidad:</b><br>${i.compatibilidad || ''}
-          </div>
-        </td>
+        <td><button onclick="toggleRow('${i.id}')">${open?'Ocultar':'Ver info'}</button></td>
         <td>
           <input id="m_${i.id}" type="number" style="width:60px">
           <button onclick="mov('${i.id}',1)">➕</button>
@@ -213,48 +202,53 @@ function renderTabla(){
         </td>
         <td><button onclick="del('${i.id}')">❌</button></td>
       </tr>
+
+      <tr class="detail-row" style="display:${open?'table-row':'none'}">
+        <td colspan="10">
+          <b>Utilidad:</b><br>${i.utilidad||''}<br><br>
+          <b>Compatibilidad:</b><br>${i.compatibilidad||''}
+        </td>
+      </tr>
     `;
   });
 }
 
 function agregar(){
   db.collection("inventario").add({
-    uid: currentUser.uid,
-    serie: $("serie").value,
-    pieza: $("pieza").value,
-    marca: $("marca").value,
-    cantidad: Number($("cantidad").value),
-    compra: Number($("compra").value),
-    venta: Number($("venta").value),
-    utilidad: $("utilidad").value,
-    compatibilidad: $("compatibilidad").value
+    uid:currentUser.uid,
+    serie:$("serie").value,
+    pieza:$("pieza").value,
+    marca:$("marca").value,
+    cantidad:Number($("cantidad").value),
+    compra:Number($("compra").value),
+    venta:Number($("venta").value),
+    utilidad:$("utilidad").value,
+    compatibilidad:$("compatibilidad").value
   });
 
-  ["serie","pieza","marca","cantidad","compra","venta","utilidad","compatibilidad"].forEach(x => $(x).value = "");
+  ["serie","pieza","marca","cantidad","compra","venta","utilidad","compatibilidad"].forEach(x=>$(x).value="");
 }
 
 function mov(id,dir){
-  const input = $("m_"+id);
-  const val = Number(input.value) || 1;
-
-  const item = inventarioCache.find(x => x.id === id);
-  if(!item) return;
+  const input=$("m_"+id);
+  const val=Number(input.value)||1;
+  const item=inventarioCache.find(x=>x.id===id);
+  if(!item)return;
 
   db.collection("inventario").doc(id).update({
-    cantidad: item.cantidad + (val * dir)
+    cantidad:item.cantidad+(val*dir)
   });
-
-  input.value = "";
+  input.value="";
 }
 
 function del(id){
   db.collection("inventario").doc(id).delete();
 }
 
-$("buscarSerie").addEventListener("input", renderTabla);
-$("filtroMarca").addEventListener("input", renderTabla);
-$("minStock").addEventListener("input", renderTabla);
-$("maxStock").addEventListener("input", renderTabla);
+$("buscarSerie").addEventListener("input",renderTabla);
+$("filtroMarca").addEventListener("input",renderTabla);
+$("minStock").addEventListener("input",renderTabla);
+$("maxStock").addEventListener("input",renderTabla);
 
 </script></body>
 </html>
