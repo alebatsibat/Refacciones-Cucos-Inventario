@@ -12,7 +12,7 @@ body{
 
 h1,h2,h3{ text-align:center; }
 
-input,button{
+input,button,textarea{
   padding:8px;
   margin:5px;
 }
@@ -45,9 +45,14 @@ th,td{
   border:1px solid #444;
   padding:8px;
   text-align:center;
+  vertical-align:top;
 }
 
 .bajo{ background:#5a0000; }
+.small{
+  font-size:12px;
+  opacity:0.9;
+}
 </style></head><body><!-- LOGIN --><div id="login" class="panel">
   <h2>🔐 Acceso</h2>
   <input id="email" placeholder="Correo">
@@ -73,6 +78,10 @@ th,td{
       <input id="compra" type="number" placeholder="Compra">
       <input id="venta" type="number" placeholder="Venta">
     </div>
+    <div class="row">
+      <textarea id="utilidad" placeholder="Utilidad / descripción" rows="2"></textarea>
+      <textarea id="compatibilidad" placeholder="Compatible con autos" rows="2"></textarea>
+    </div>
     <div style="text-align:center">
       <button onclick="agregar()">Agregar</button>
     </div>
@@ -86,6 +95,7 @@ th,td{
         <th>Compra</th>
         <th>Venta</th>
         <th>Ganancia</th>
+        <th>Info</th>
         <th>Mov</th>
         <th>Acción</th>
       </tr>
@@ -112,7 +122,6 @@ const STOCK_MINIMO = 5;
 
 const $ = id => document.getElementById(id);
 
-// LOGIN
 function login(){
   auth.signInWithEmailAndPassword($("email").value, $("pass").value)
   .catch(e => alert(e.message));
@@ -122,7 +131,6 @@ function logout(){
   auth.signOut();
 }
 
-// AUTH
 auth.onAuthStateChanged(user => {
   currentUser = user;
 
@@ -137,9 +145,7 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-// CARGAR DATOS
 function cargarDatos(){
-
   if(unsubscribe) unsubscribe();
 
   unsubscribe = db.collection("inventario")
@@ -155,7 +161,6 @@ function cargarDatos(){
     });
 }
 
-// RENDER
 function renderTabla(){
 
   const serieF = $("buscarSerie").value.toLowerCase();
@@ -183,6 +188,10 @@ function renderTabla(){
         <td>$${i.compra}</td>
         <td>$${i.venta}</td>
         <td>$${i.venta - i.compra}</td>
+        <td class="small">
+          <b>Utilidad:</b><br>${i.utilidad || ''}<br><br>
+          <b>Compatibilidad:</b><br>${i.compatibilidad || ''}
+        </td>
         <td>
           <input id="m_${i.id}" type="number" style="width:60px">
           <button onclick="mov('${i.id}',1)">➕</button>
@@ -194,7 +203,6 @@ function renderTabla(){
   });
 }
 
-// AGREGAR
 function agregar(){
   db.collection("inventario").add({
     uid: currentUser.uid,
@@ -203,13 +211,14 @@ function agregar(){
     marca: $("marca").value,
     cantidad: Number($("cantidad").value),
     compra: Number($("compra").value),
-    venta: Number($("venta").value)
+    venta: Number($("venta").value),
+    utilidad: $("utilidad").value,
+    compatibilidad: $("compatibilidad").value
   });
 
-  ["serie","pieza","marca","cantidad","compra","venta"].forEach(x => $(x).value = "");
+  ["serie","pieza","marca","cantidad","compra","venta","utilidad","compatibilidad"].forEach(x => $(x).value = "");
 }
 
-// MOV
 function mov(id,dir){
   const input = $("m_"+id);
   const val = Number(input.value) || 1;
@@ -224,12 +233,10 @@ function mov(id,dir){
   input.value = "";
 }
 
-// DELETE
 function del(id){
   db.collection("inventario").doc(id).delete();
 }
 
-// FILTROS
 $("buscarSerie").addEventListener("input", renderTabla);
 $("filtroMarca").addEventListener("input", renderTabla);
 $("minStock").addEventListener("input", renderTabla);
