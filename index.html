@@ -72,7 +72,7 @@ th, td {
   <input id="serie" placeholder="Número de serie">
   <input id="pieza" placeholder="Pieza">
   <input id="marca" placeholder="Marca">
-  <input id="cantidad" type="number" placeholder="Cantidad">
+  <input id="cantidad" type="number" placeholder="Cantidad inicial">
   <input id="compra" type="number" placeholder="Precio compra">
   <input id="venta" type="number" placeholder="Precio venta">
 
@@ -88,6 +88,7 @@ th, td {
         <th>Compra</th>
         <th>Venta</th>
         <th>Ganancia</th>
+        <th>Movimiento</th>
         <th>Acción</th>
       </tr>
     </thead>
@@ -101,7 +102,7 @@ th, td {
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
-const ADMIN_EMAIL = "tucorreo@gmail.com";
+const ADMIN_EMAIL = "alebatsibat@gmail.com";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYSgns53l27_8yrSFmsFXjvXN77m_XExk",
@@ -176,7 +177,7 @@ function agregar() {
   limpiar();
 }
 
-/* CARGAR + BUSCADOR */
+/* CARGAR DATOS */
 function cargarDatos() {
   let user = auth.currentUser;
   if (!user) return;
@@ -203,9 +204,15 @@ function cargarDatos() {
             <td>$${item.compra}</td>
             <td>$${item.venta}</td>
             <td>$${Number(item.venta - item.compra)}</td>
+
             <td>
-              <button onclick="vender('${doc.id}', ${item.cantidad})">➖</button>
-              <button onclick="comprar('${doc.id}', ${item.cantidad})">➕</button>
+              <input id="mov_${doc.id}" type="number" placeholder="Cantidad" style="width:80px">
+              <br>
+              <button onclick="comprar('${doc.id}')">➕ Comprar</button>
+              <button onclick="vender('${doc.id}')">➖ Vender</button>
+            </td>
+
+            <td>
               <button onclick="eliminar('${doc.id}')">❌</button>
             </td>
           </tr>
@@ -214,23 +221,55 @@ function cargarDatos() {
     });
 }
 
-/* VENDER */
-function vender(id, cantidadActual) {
-  if (cantidadActual <= 0) return alert("Sin stock");
+/* ➕ COMPRAR */
+function comprar(id) {
+  let input = document.getElementById("mov_" + id);
+  let cantidadMov = Number(input.value);
 
-  db.collection("inventario").doc(id).update({
-    cantidad: cantidadActual - 1
+  if (!cantidadMov || cantidadMov <= 0) {
+    return alert("Ingresa una cantidad válida");
+  }
+
+  let ref = db.collection("inventario").doc(id);
+
+  ref.get().then(doc => {
+    let actual = doc.data().cantidad;
+
+    ref.update({
+      cantidad: actual + cantidadMov
+    });
+
+    input.value = "";
   });
 }
 
-/* COMPRAR */
-function comprar(id, cantidadActual) {
-  db.collection("inventario").doc(id).update({
-    cantidad: cantidadActual + 1
+/* ➖ VENDER */
+function vender(id) {
+  let input = document.getElementById("mov_" + id);
+  let cantidadMov = Number(input.value);
+
+  if (!cantidadMov || cantidadMov <= 0) {
+    return alert("Ingresa una cantidad válida");
+  }
+
+  let ref = db.collection("inventario").doc(id);
+
+  ref.get().then(doc => {
+    let actual = doc.data().cantidad;
+
+    if (actual < cantidadMov) {
+      return alert("No hay suficiente stock");
+    }
+
+    ref.update({
+      cantidad: actual - cantidadMov
+    });
+
+    input.value = "";
   });
 }
 
-/* ELIMINAR */
+/* ❌ ELIMINAR */
 function eliminar(id) {
   db.collection("inventario").doc(id).delete();
 }
@@ -245,7 +284,7 @@ function limpiar() {
   venta.value = "";
 }
 
-/* BUSCADOR EN TIEMPO REAL */
+/* BUSCADOR */
 buscarSerie.addEventListener("input", cargarDatos);
 </script>
 
