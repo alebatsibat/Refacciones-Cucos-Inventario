@@ -2,10 +2,10 @@
 <head>
 <meta charset="UTF-8">
 <title>Inventario Pro</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- Firebase --><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><style>
 body{
   font-family: Arial;
-  background:#d6d6d6;
+  background:#cfcfcf;
   color:#111;
   padding:20px;
 }
@@ -36,11 +36,11 @@ button{
 
 /* 🔵 AZUL MÁS OSCURO */
 .panel{
-  background:#1f3f7a;
+  background:#162f5a;
   padding:15px;
   margin-bottom:15px;
   border-radius:10px;
-  border:1px solid #142a52;
+  border:1px solid #0f1f3d;
   color:#fff;
 }
 
@@ -54,24 +54,24 @@ button{
 table{
   width:100%;
   border-collapse:collapse;
-  background:#f2f2f2;
+  background:#e6e6e6;
   color:#111;
 }
 
 th,td{
-  border:1px solid #b5b5b5;
+  border:1px solid #9a9a9a;
   padding:8px;
   text-align:center;
 }
 
 th{
-  background:#c9c9c9;
+  background:#bdbdbd;
 }
 
-.bajo{ background:#ffd6d6; }
+.bajo{ background:#ffcdcd; }
 
 .detail-row td{
-  background:#cfcfcf;
+  background:#d9d9d9;
   text-align:left;
 }
 </style></head><body><div id="login" class="panel">
@@ -80,7 +80,7 @@ th{
   <input id="pass" type="password" placeholder="Contraseña">
   <br>
   <button onclick="login()">Entrar</button>
-</div><div id="app">  <h1>🚗 Inventario Refacciones</h1>
+</div><div id="app">  <h1>🚗 Inventario Pro</h1>
   <button onclick="logout()">Cerrar sesión</button>  <div class="panel">
     <h3>🔎 Filtros</h3>
     <div class="row">
@@ -100,8 +100,8 @@ th{
       <input id="venta" type="number" placeholder="Venta">
     </div>
     <div class="row">
-      <textarea id="utilidad" placeholder="Utilidad / descripción"></textarea>
-      <textarea id="compatibilidad" placeholder="Compatible con autos"></textarea>
+      <textarea id="utilidad" placeholder="Descripción / utilidad"></textarea>
+      <textarea id="compatibilidad" placeholder="Compatibilidad"></textarea>
     </div>
     <div style="text-align:center">
       <button onclick="agregar()">Agregar</button>
@@ -123,6 +123,7 @@ th{
     </thead>
     <tbody id="tabla"></tbody>
   </table></div><script>
+
 const firebaseConfig = {
   apiKey: "AIzaSyDYSgns53l27_8yrSFmsFXjvXN77m_XExk",
   authDomain: "inventario-app-134fa.firebaseapp.com",
@@ -136,99 +137,104 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let currentUser=null;
-let role="employee";
-let unsubscribe=null;
-let inventarioCache=[];
-let openRow={};
-const STOCK_MINIMO=5;
+let currentUser = null;
+let role = "employee";
+let unsubscribe = null;
+let inventarioCache = [];
+let openRow = {};
+const STOCK_MINIMO = 5;
 
-const $=id=>document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 function login(){
-  auth.signInWithEmailAndPassword($("email").value,$("pass").value)
-  .catch(e=>alert(e.message));
+  auth.signInWithEmailAndPassword($("email").value, $("pass").value)
+  .catch(e => alert(e.message));
 }
 
 function logout(){ auth.signOut(); }
 
+// 🔐 Obtener rol desde Firestore
 async function loadRole(uid){
-  const doc=await db.collection("users").doc(uid).get();
-  role=doc.exists?doc.data().role:"employee";
+  const doc = await db.collection("users").doc(uid).get();
+  role = doc.exists ? doc.data().role : "employee";
 }
 
-auth.onAuthStateChanged(async user=>{
-  currentUser=user;
+// 🔑 Auth listener
+auth.onAuthStateChanged(async user => {
+  currentUser = user;
+
   if(user){
-    $("login").style.display="none";
-    $("app").style.display="block";
+    $("login").style.display = "none";
+    $("app").style.display = "block";
+
     await loadRole(user.uid);
     cargarDatos();
-  }else{
-    $("login").style.display="block";
-    $("app").style.display="none";
-    if(unsubscribe)unsubscribe();
+  } else {
+    $("login").style.display = "block";
+    $("app").style.display = "none";
+
+    if(unsubscribe) unsubscribe();
   }
 });
 
 function cargarDatos(){
-  if(unsubscribe)unsubscribe();
+  if(unsubscribe) unsubscribe();
 
-  unsubscribe=db.collection("inventario")
-  .where("uid","==",currentUser.uid)
-  .onSnapshot(snap=>{
-    inventarioCache=snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderTabla();
-  });
+  unsubscribe = db.collection("inventario")
+    .where("uid", "==", currentUser.uid)
+    .onSnapshot(snap => {
+      inventarioCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderTabla();
+    });
 }
 
 function toggleRow(id){
-  openRow[id]=!openRow[id];
+  openRow[id] = !openRow[id];
   renderTabla();
 }
 
 function renderTabla(){
 
-  const serieF=$("buscarSerie").value.toLowerCase();
-  const marcaF=$("filtroMarca").value.toLowerCase();
-  const min=Number($("minStock").value);
-  const max=Number($("maxStock").value);
+  const serieF = $("buscarSerie").value.toLowerCase();
+  const marcaF = $("filtroMarca").value.toLowerCase();
+  const min = Number($("minStock").value);
+  const max = Number($("maxStock").value);
 
-  $("tabla").innerHTML="";
+  $("tabla").innerHTML = "";
 
-  inventarioCache.forEach(i=>{
+  inventarioCache.forEach(i => {
 
     if(
-      (serieF&&!i.serie.toLowerCase().includes(serieF))||
-      (marcaF&&!i.marca.toLowerCase().includes(marcaF))||
-      ($("minStock").value&&i.cantidad<min)||
-      ($("maxStock").value&&i.cantidad>max)
-    )return;
+      (serieF && !i.serie.toLowerCase().includes(serieF)) ||
+      (marcaF && !i.marca.toLowerCase().includes(marcaF)) ||
+      ($("minStock").value && i.cantidad < min) ||
+      ($("maxStock").value && i.cantidad > max)
+    ) return;
 
-    const open=openRow[i.id];
+    const open = openRow[i.id];
 
-    $("tabla").innerHTML+=`
-      <tr class="${i.cantidad<=STOCK_MINIMO?'bajo':''}">
+    $("tabla").innerHTML += `
+      <tr class="${i.cantidad <= STOCK_MINIMO ? 'bajo' : ''}">
         <td>${i.serie}</td>
         <td>${i.pieza}</td>
         <td>${i.marca}</td>
         <td>${i.cantidad}</td>
         <td>$${i.compra}</td>
         <td>$${i.venta}</td>
-        <td>$${i.venta-i.compra}</td>
-        <td><button onclick="toggleRow('${i.id}')">${open?'Ocultar':'Ver info'}</button></td>
+        <td>$${i.venta - i.compra}</td>
+        <td><button onclick="toggleRow('${i.id}')">${open ? 'Ocultar' : 'Ver info'}</button></td>
         <td>
           <input id="m_${i.id}" type="number" style="width:60px">
           <button onclick="mov('${i.id}',1)">➕</button>
           <button onclick="mov('${i.id}',-1)">➖</button>
         </td>
-        <td>${role==='admin'?`<button onclick="del('${i.id}')">❌</button>`:'-'}</td>
+        <td>${role === 'admin' ? `<button onclick="del('${i.id}')">❌</button>` : '-'}</td>
       </tr>
 
-      <tr class="detail-row" style="display:${open?'table-row':'none'}">
+      <tr class="detail-row" style="display:${open ? 'table-row' : 'none'}">
         <td colspan="10">
-          <b>Utilidad:</b><br>${i.utilidad||''}<br><br>
-          <b>Compatibilidad:</b><br>${i.compatibilidad||''}
+          <b>Descripción:</b><br>${i.utilidad || ''}<br><br>
+          <b>Compatibilidad:</b><br>${i.compatibilidad || ''}
         </td>
       </tr>
     `;
@@ -237,39 +243,40 @@ function renderTabla(){
 
 function agregar(){
   db.collection("inventario").add({
-    uid:currentUser.uid,
-    serie:$("serie").value,
-    pieza:$("pieza").value,
-    marca:$("marca").value,
-    cantidad:Number($("cantidad").value),
-    compra:Number($("compra").value),
-    venta:Number($("venta").value),
-    utilidad:$("utilidad").value,
-    compatibilidad:$("compatibilidad").value
+    uid: currentUser.uid,
+    serie: $("serie").value,
+    pieza: $("pieza").value,
+    marca: $("marca").value,
+    cantidad: Number($("cantidad").value),
+    compra: Number($("compra").value),
+    venta: Number($("venta").value),
+    utilidad: $("utilidad").value,
+    compatibilidad: $("compatibilidad").value
   });
 }
 
 function mov(id,dir){
-  const input=$("m_"+id);
-  const val=Number(input.value)||1;
-  const item=inventarioCache.find(x=>x.id===id);
-  if(!item)return;
+  const input = $("m_" + id);
+  const val = Number(input.value) || 1;
+  const item = inventarioCache.find(x => x.id === id);
+  if(!item) return;
 
   db.collection("inventario").doc(id).update({
-    cantidad:item.cantidad+(val*dir)
+    cantidad: item.cantidad + (val * dir)
   });
-  input.value="";
+
+  input.value = "";
 }
 
 function del(id){
-  if(role!=='admin')return;
+  if(role !== 'admin') return;
   db.collection("inventario").doc(id).delete();
 }
 
-$("buscarSerie").addEventListener("input",renderTabla);
-$("filtroMarca").addEventListener("input",renderTabla);
-$("minStock").addEventListener("input",renderTabla);
-$("maxStock").addEventListener("input",renderTabla);
+$("buscarSerie").addEventListener("input", renderTabla);
+$("filtroMarca").addEventListener("input", renderTabla);
+$("minStock").addEventListener("input", renderTabla);
+$("maxStock").addEventListener("input", renderTabla);
 
 </script></body>
 </html>
