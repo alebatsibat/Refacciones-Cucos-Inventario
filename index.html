@@ -64,11 +64,15 @@ th, td {
 
   <br><br>
 
-  <!-- BUSCADOR -->
-  <input id="buscarSerie" placeholder="🔎 Buscar">
+  <!-- FILTROS -->
+  <input id="buscarSerie" placeholder="Buscar">
+  <input id="filtroMarca" placeholder="Marca">
+  <input id="minStock" type="number" placeholder="Stock mínimo">
+  <input id="maxStock" type="number" placeholder="Stock máximo">
 
   <br><br>
 
+  <!-- FORMULARIO -->
   <input id="serie" placeholder="Número de serie">
   <input id="pieza" placeholder="Pieza">
   <input id="marca" placeholder="Marca">
@@ -81,7 +85,7 @@ th, td {
   <table>
     <thead>
       <tr>
-        <th>Número de serie</th>
+        <th>Serie</th>
         <th>Pieza</th>
         <th>Marca</th>
         <th>Cantidad</th>
@@ -102,7 +106,8 @@ th, td {
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
-const ADMIN_EMAIL = "alebatsibat@gmail.com";
+const ADMIN_EMAIL = "tucorreo@gmail.com";
+const STOCK_MINIMO = 5;
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYSgns53l27_8yrSFmsFXjvXN77m_XExk",
@@ -131,7 +136,11 @@ const venta = document.getElementById("venta");
 const tabla = document.getElementById("tabla");
 const loginDiv = document.getElementById("loginDiv");
 const app = document.getElementById("app");
+
 const buscarSerie = document.getElementById("buscarSerie");
+const filtroMarca = document.getElementById("filtroMarca");
+const minStock = document.getElementById("minStock");
+const maxStock = document.getElementById("maxStock");
 
 /* LOGIN */
 function login() {
@@ -160,10 +169,6 @@ function agregar() {
   let user = auth.currentUser;
   if (!user) return;
 
-  if (!serie.value || !pieza.value) {
-    return alert("Faltan datos");
-  }
-
   db.collection("inventario").add({
     serie: serie.value,
     pieza: pieza.value,
@@ -177,10 +182,12 @@ function agregar() {
   limpiar();
 }
 
-/* CARGAR DATOS */
+/* CARGAR */
 function cargarDatos() {
   let user = auth.currentUser;
   if (!user) return;
+
+  let alertasMostradas = new Set();
 
   db.collection("inventario")
     .where("uid", "==", user.uid)
@@ -188,15 +195,32 @@ function cargarDatos() {
 
       tabla.innerHTML = "";
 
-      let filtro = buscarSerie.value.toLowerCase();
+      let serieFiltro = buscarSerie.value.toLowerCase();
+      let marcaFiltro = filtroMarca.value.toLowerCase();
+      let min = Number(minStock.value);
+      let max = Number(maxStock.value);
+
+      alertasMostradas.clear();
 
       snapshot.forEach(doc => {
         let item = doc.data();
 
-        if (filtro && !item.serie.toLowerCase().includes(filtro)) return;
+        /* FILTROS */
+        if (
+          (serieFiltro && !item.serie.toLowerCase().includes(serieFiltro)) ||
+          (marcaFiltro && !item.marca.toLowerCase().includes(marcaFiltro)) ||
+          (minStock.value && item.cantidad < min) ||
+          (maxStock.value && item.cantidad > max)
+        ) return;
+
+        /* ALERTA STOCK BAJO */
+        if (item.cantidad <= STOCK_MINIMO && !alertasMostradas.has(item.serie)) {
+          alert(`⚠️ Stock bajo: ${item.serie} (${item.cantidad})`);
+          alertasMostradas.add(item.serie);
+        }
 
         tabla.innerHTML += `
-          <tr class="${item.cantidad < 5 ? 'bajo' : ''}">
+          <tr class="${item.cantidad < STOCK_MINIMO ? 'bajo' : ''}">
             <td>${item.serie}</td>
             <td>${item.pieza}</td>
             <td>${item.marca}</td>
@@ -208,8 +232,8 @@ function cargarDatos() {
             <td>
               <input id="mov_${doc.id}" type="number" placeholder="Cantidad" style="width:80px">
               <br>
-              <button onclick="comprar('${doc.id}')">➕ Comprar</button>
-              <button onclick="vender('${doc.id}')">➖ Vender</button>
+              <button onclick="comprar('${doc.id}')">➕</button>
+              <button onclick="vender('${doc.id}')">➖</button>
             </td>
 
             <td>
@@ -224,21 +248,16 @@ function cargarDatos() {
 /* ➕ COMPRAR */
 function comprar(id) {
   let input = document.getElementById("mov_" + id);
-  let cantidadMov = Number(input.value);
+  let cant = Number(input.value);
 
-  if (!cantidadMov || cantidadMov <= 0) {
-    return alert("Ingresa una cantidad válida");
-  }
+  if (!cant || cant <= 0) return alert("Cantidad inválida");
 
   let ref = db.collection("inventario").doc(id);
 
   ref.get().then(doc => {
-    let actual = doc.data().cantidad;
-
     ref.update({
-      cantidad: actual + cantidadMov
+      cantidad: doc.data().cantidad + cant
     });
-
     input.value = "";
   });
 }
@@ -246,23 +265,19 @@ function comprar(id) {
 /* ➖ VENDER */
 function vender(id) {
   let input = document.getElementById("mov_" + id);
-  let cantidadMov = Number(input.value);
+  let cant = Number(input.value);
 
-  if (!cantidadMov || cantidadMov <= 0) {
-    return alert("Ingresa una cantidad válida");
-  }
+  if (!cant || cant <= 0) return alert("Cantidad inválida");
 
   let ref = db.collection("inventario").doc(id);
 
   ref.get().then(doc => {
     let actual = doc.data().cantidad;
 
-    if (actual < cantidadMov) {
-      return alert("No hay suficiente stock");
-    }
+    if (actual < cant) return alert("No hay suficiente stock");
 
     ref.update({
-      cantidad: actual - cantidadMov
+      cantidad: actual - cant
     });
 
     input.value = "";
@@ -284,8 +299,11 @@ function limpiar() {
   venta.value = "";
 }
 
-/* BUSCADOR */
+/* FILTROS EN TIEMPO REAL */
 buscarSerie.addEventListener("input", cargarDatos);
+filtroMarca.addEventListener("input", cargarDatos);
+minStock.addEventListener("input", cargarDatos);
+maxStock.addEventListener("input", cargarDatos);
 </script>
 
 </body>
