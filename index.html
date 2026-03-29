@@ -1,43 +1,82 @@
 <!DOCTYPE html><html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Inventario Pro</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- Firebase (compat v8 para estilo db.collection) --><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script><style>
+<title>Inventario Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><style>
 body{
   font-family: Arial;
   background:#111;
   color:white;
   padding:20px;
 }
+
+h1,h2,h3{ text-align:center; }
+
 input,button{
-  margin:5px;
   padding:8px;
+  margin:5px;
 }
+
+button{ cursor:pointer; }
+
+#app{ display:none; }
+
+.panel{
+  background:#1b1b1b;
+  padding:15px;
+  margin-bottom:15px;
+  border-radius:10px;
+  border:1px solid #333;
+}
+
+.row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  justify-content:center;
+}
+
 table{
   width:100%;
-  border-collapse: collapse;
+  border-collapse:collapse;
 }
-td,th{
-  border:1px solid #333;
-  padding:6px;
+
+th,td{
+  border:1px solid #444;
+  padding:8px;
+  text-align:center;
 }
-.bajo{
-  background:#5a1a1a;
-}
-</style></head>
-<body><h2>Inventario Pro</h2><div id="login">
+
+.bajo{ background:#5a0000; }
+</style></head><body><!-- LOGIN --><div id="login" class="panel">
+  <h2>🔐 Acceso</h2>
   <input id="email" placeholder="Correo">
   <input id="pass" type="password" placeholder="Contraseña">
+  <br>
   <button onclick="login()">Entrar</button>
-</div><div id="app" style="display:none;">  <input id="serie" placeholder="Serie">
-  <input id="pieza" placeholder="Pieza">
-  <input id="marca" placeholder="Marca">
-  <input id="cantidad" type="number" placeholder="Cantidad">
-  <input id="compra" type="number" placeholder="Compra">
-  <input id="venta" type="number" placeholder="Venta">
-  <button onclick="agregar()">Agregar</button>  <hr>  <input id="buscarSerie" placeholder="Buscar serie">
-  <input id="filtroMarca" placeholder="Filtrar marca">
-  <input id="minStock" type="number" placeholder="Min stock">
-  <input id="maxStock" type="number" placeholder="Max stock">  <table>
+</div><!-- APP --><div id="app">  <h1>🚗 Inventario Refacciones</h1>
+  <button onclick="logout()">Cerrar sesión</button>  <!-- FILTROS -->  <div class="panel">
+    <h3>🔎 Filtros</h3>
+    <div class="row">
+      <input id="buscarSerie" placeholder="Serie">
+      <input id="filtroMarca" placeholder="Marca">
+      <input id="minStock" type="number" placeholder="Stock mínimo">
+      <input id="maxStock" type="number" placeholder="Stock máximo">
+    </div>
+  </div>  <!-- PRODUCTOS -->  <div class="panel">
+    <h3>➕ Nuevo producto</h3>
+    <div class="row">
+      <input id="serie" placeholder="Serie">
+      <input id="pieza" placeholder="Pieza">
+      <input id="marca" placeholder="Marca">
+      <input id="cantidad" type="number" placeholder="Cantidad">
+      <input id="compra" type="number" placeholder="Compra">
+      <input id="venta" type="number" placeholder="Venta">
+    </div>
+    <div style="text-align:center">
+      <button onclick="agregar()">Agregar</button>
+    </div>
+  </div>  <table>
     <thead>
       <tr>
         <th>Serie</th>
@@ -53,7 +92,6 @@ td,th{
     </thead>
     <tbody id="tabla"></tbody>
   </table></div><script>
-// CONFIG FIREBASE (pon la tuya)
 const firebaseConfig = {
   apiKey: "AIzaSyDYSgns53l27_8yrSFmsFXjvXN77m_XExk",
   authDomain: "inventario-app-134fa.firebaseapp.com",
@@ -72,28 +110,44 @@ let unsubscribe = null;
 let inventarioCache = [];
 const STOCK_MINIMO = 5;
 
-function $(id){ return document.getElementById(id); }
+const $ = id => document.getElementById(id);
 
+// LOGIN
 function login(){
   auth.signInWithEmailAndPassword($("email").value, $("pass").value)
-  .then(u=>{
-    currentUser = u.user;
+  .catch(e => alert(e.message));
+}
+
+function logout(){
+  auth.signOut();
+}
+
+// AUTH
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+
+  if(user){
     $("login").style.display = "none";
     $("app").style.display = "block";
     cargarDatos();
-  })
-  .catch(e=>alert(e.message));
-}
+  } else {
+    $("login").style.display = "block";
+    $("app").style.display = "none";
+    if(unsubscribe) unsubscribe();
+  }
+});
 
+// CARGAR DATOS
 function cargarDatos(){
+
   if(unsubscribe) unsubscribe();
 
   unsubscribe = db.collection("inventario")
     .where("uid","==",currentUser.uid)
-    .onSnapshot(snapshot=>{
+    .onSnapshot(snapshot => {
 
-      inventarioCache = snapshot.docs.map(d=>({
-        id:d.id,
+      inventarioCache = snapshot.docs.map(d => ({
+        id: d.id,
         ...d.data()
       }));
 
@@ -101,6 +155,7 @@ function cargarDatos(){
     });
 }
 
+// RENDER
 function renderTabla(){
 
   const serieF = $("buscarSerie").value.toLowerCase();
@@ -110,7 +165,7 @@ function renderTabla(){
 
   $("tabla").innerHTML = "";
 
-  inventarioCache.forEach(i=>{
+  inventarioCache.forEach(i => {
 
     if(
       (serieF && !i.serie.toLowerCase().includes(serieF)) ||
@@ -120,7 +175,7 @@ function renderTabla(){
     ) return;
 
     $("tabla").innerHTML += `
-      <tr class="${i.cantidad <= STOCK_MINIMO ? 'bajo':''}">
+      <tr class="${i.cantidad <= STOCK_MINIMO ? 'bajo' : ''}">
         <td>${i.serie}</td>
         <td>${i.pieza}</td>
         <td>${i.marca}</td>
@@ -139,38 +194,46 @@ function renderTabla(){
   });
 }
 
+// AGREGAR
 function agregar(){
   db.collection("inventario").add({
-    uid:currentUser.uid,
-    serie:$("serie").value,
-    pieza:$("pieza").value,
-    marca:$("marca").value,
-    cantidad:Number($("cantidad").value),
-    compra:Number($("compra").value),
-    venta:Number($("venta").value)
+    uid: currentUser.uid,
+    serie: $("serie").value,
+    pieza: $("pieza").value,
+    marca: $("marca").value,
+    cantidad: Number($("cantidad").value),
+    compra: Number($("compra").value),
+    venta: Number($("venta").value)
   });
+
+  ["serie","pieza","marca","cantidad","compra","venta"].forEach(x => $(x).value = "");
 }
 
+// MOV
 function mov(id,dir){
-  const input = document.getElementById("m_"+id);
-  const val = Number(input.value)||1;
+  const input = $("m_"+id);
+  const val = Number(input.value) || 1;
 
-  const item = inventarioCache.find(x=>x.id===id);
+  const item = inventarioCache.find(x => x.id === id);
   if(!item) return;
 
   db.collection("inventario").doc(id).update({
-    cantidad: item.cantidad + (val*dir)
+    cantidad: item.cantidad + (val * dir)
   });
+
+  input.value = "";
 }
 
+// DELETE
 function del(id){
   db.collection("inventario").doc(id).delete();
 }
 
-$("buscarSerie").addEventListener("input",renderTabla);
-$("filtroMarca").addEventListener("input",renderTabla);
-$("minStock").addEventListener("input",renderTabla);
-$("maxStock").addEventListener("input",renderTabla);
+// FILTROS
+$("buscarSerie").addEventListener("input", renderTabla);
+$("filtroMarca").addEventListener("input", renderTabla);
+$("minStock").addEventListener("input", renderTabla);
+$("maxStock").addEventListener("input", renderTabla);
 
 </script></body>
 </html>
